@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PILOT
+  ADMIN
+}
+
+enum EventStatus {
+  SCHEDULED
+  FINISHED
+  CANCELED
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  name         String     @db.VarChar(120)
+  email        String     @unique @db.VarChar(160)
+  phone        String     @db.VarChar(30)
+  passwordHash String     @map("password_hash") @db.VarChar(255)
+  role         UserRole   @default(PILOT)
+  active       Boolean    @default(true)
+  photo        UserPhoto?
+  standings    Standing[]
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model UserPhoto {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  mimeType  String   @map("mime_type") @db.VarChar(40)
+  fileSize  Int      @map("file_size")
+  width     Int
+  height    Int
+  imageData Bytes    @map("image_data") @db.MediumBlob
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("user_photos")
+}
+
+model Season {
+  id            Int            @id @default(autoincrement())
+  name          String         @db.VarChar(120)
+  year          Int
+  active        Boolean        @default(true)
+  championships Championship[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@unique([year, name])
+  @@map("seasons")
+}
+
+model Category {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique @db.VarChar(120)
+  description   String?        @db.VarChar(255)
+  active        Boolean        @default(true)
+  championships Championship[]
+  events        RaceEvent[]
+  standings     Standing[]
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model Championship {
+  id         Int        @id @default(autoincrement())
+  seasonId   Int        @map("season_id")
+  categoryId Int        @map("category_id")
+  name       String     @db.VarChar(140)
+  active     Boolean    @default(true)
+  season     Season     @relation(fields: [seasonId], references: [id])
+  category   Category   @relation(fields: [categoryId], references: [id])
+  standings  Standing[]
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@unique([seasonId, categoryId, name])
+  @@map("championships")
+}
+
+model RaceEvent {
+  id          Int         @id @default(autoincrement())
+  categoryId  Int         @map("category_id")
+  title       String      @db.VarChar(140)
+  trackName   String      @map("track_name") @db.VarChar(140)
+  city        String?     @db.VarChar(100)
+  roundNumber Int         @map("round_number")
+  startsAt    DateTime    @map("starts_at")
+  status      EventStatus @default(SCHEDULED)
+  notes       String?     @db.VarChar(500)
+  category    Category    @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@index([categoryId, startsAt])
+  @@map("race_events")
+}
+
+model Standing {
+  id             Int          @id @default(autoincrement())
+  championshipId Int          @map("championship_id")
+  categoryId     Int          @map("category_id")
+  userId         Int          @map("user_id")
+  position       Int
+  points         Int          @default(0)
+  wins           Int          @default(0)
+  poles          Int          @default(0)
+  fastestLaps    Int          @default(0) @map("fastest_laps")
+  races          Int          @default(0)
+  championship   Championship @relation(fields: [championshipId], references: [id])
+  category       Category     @relation(fields: [categoryId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([championshipId, userId])
+  @@index([categoryId, position])
+  @@map("standings")
+}
