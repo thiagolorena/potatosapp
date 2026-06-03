@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import sharp from 'sharp';
+import sharp = require('sharp');
 
 export type PreparedPhoto = {
   buffer: Buffer;

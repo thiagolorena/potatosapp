@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 
@@ -20,14 +22,15 @@ class ApiClient {
     required String email,
     required String phone,
     required String password,
-    required String photoPath,
+    required Uint8List photoBytes,
+    required String photoName,
   }) {
     final data = FormData.fromMap({
       'name': name,
       'email': email,
       'phone': phone,
       'password': password,
-      'photo': MultipartFile.fromFileSync(photoPath),
+      'photo': MultipartFile.fromBytes(photoBytes, filename: photoName),
     });
     return dio.post('/auth/register', data: data);
   }

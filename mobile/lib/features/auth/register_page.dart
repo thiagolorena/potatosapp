@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -33,19 +34,28 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => loading = true);
     try {
       final api = ApiScope.of(context);
+      final photoBytes = await photo!.readAsBytes();
       final result = await api.register(
         name: name.text,
         email: email.text,
         phone: phone.text,
         password: password.text,
-        photoPath: photo!.path,
+        photoBytes: photoBytes,
+        photoName: photo!.name,
       );
       api.setToken(result.data['accessToken'] as String);
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomePage()), (_) => false);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nao foi possivel concluir o cadastro.')));
+      var message = 'Nao foi possivel concluir o cadastro.';
+      if (error is DioException) {
+        final responseData = error.response?.data;
+        if (responseData is Map && responseData['message'] != null) {
+          message = responseData['message'].toString();
+        }
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => loading = false);
     }
