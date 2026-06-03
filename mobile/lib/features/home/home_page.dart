@@ -23,8 +23,12 @@ class HomePage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text('Escolha sua proxima parada', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
+          Text('Box Potatos', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          const Text('Acompanhe sua liga sem depender de planilhas.', style: TextStyle(color: Colors.white70)),
           const SizedBox(height: 18),
+          const _NextRaceStrip(),
+          const SizedBox(height: 16),
           _HomeAction(
             icon: Icons.event_available_outlined,
             title: 'Calendario',
@@ -36,6 +40,37 @@ class HomePage extends StatelessWidget {
             title: 'Classificacao',
             subtitle: 'Acompanhe a tabela do campeonato.',
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoryStandingsPage())),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NextRaceStrip extends StatelessWidget {
+  const _NextRaceStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1B1D22),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF2D3037)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.local_fire_department_outlined, color: Color(0xFFFF6210)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Paddock ativo', style: TextStyle(fontWeight: FontWeight.w900)),
+                Text('Calendario e ranking separados por categoria.', style: TextStyle(color: Colors.white70)),
+              ],
+            ),
           ),
         ],
       ),

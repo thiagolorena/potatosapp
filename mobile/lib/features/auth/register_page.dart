@@ -68,12 +68,12 @@ class _RegisterPageState extends State<RegisterPage> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          OutlinedButton.icon(
-            onPressed: pickPhoto,
-            icon: const Icon(Icons.add_a_photo_outlined),
-            label: Text(photo == null ? 'Adicionar foto obrigatoria' : 'Foto selecionada'),
-          ),
-          const SizedBox(height: 16),
+          Text('Monte seu perfil de grid', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 8),
+          const Text('A foto ajuda a identificar pilotos na classificacao e no paddock.', style: TextStyle(color: Colors.white70)),
+          const SizedBox(height: 18),
+          _PhotoPickerCard(hasPhoto: photo != null, onTap: pickPhoto),
+          const SizedBox(height: 18),
           TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome')),
           const SizedBox(height: 12),
           TextField(controller: email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'E-mail')),
@@ -84,6 +84,56 @@ class _RegisterPageState extends State<RegisterPage> {
           const SizedBox(height: 22),
           ElevatedButton(onPressed: loading ? null : submit, child: Text(loading ? 'Cadastrando...' : 'Entrar na liga')),
         ],
+      ),
+    );
+  }
+}
+
+class _PhotoPickerCard extends StatelessWidget {
+  const _PhotoPickerCard({required this.hasPhoto, required this.onTap});
+
+  final bool hasPhoto;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        height: 118,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B1D22),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: hasPhoto ? const Color(0xFFFF6210) : const Color(0xFF2D3037)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 66,
+              height: 66,
+              decoration: BoxDecoration(
+                color: hasPhoto ? const Color(0xFFFF6210) : const Color(0xFF2D3037),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(hasPhoto ? Icons.check : Icons.add_a_photo_outlined, color: hasPhoto ? Colors.black : Colors.white),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(hasPhoto ? 'Foto selecionada' : 'Adicionar foto obrigatoria', style: const TextStyle(fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 4),
+                  const Text('Imagem compactada antes de salvar no MySQL.', style: TextStyle(color: Colors.white70)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right),
+          ],
+        ),
       ),
     );
   }
