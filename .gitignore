@@ -1,4 +1,7 @@
 node_modules/
+.npm-cache/
+.pub-cache/
+.gradle/
 dist/
 build/
 .dart_tool/
@@ -14,9 +17,3 @@ coverage/
 *.iml
 .idea/
 .vscode/
-android/
-ios/
-macos/
-linux/
-windows/
-web/

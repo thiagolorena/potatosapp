@@ -18,6 +18,8 @@ Aplicacao mobile para Android e iOS da liga Potatos, com cadastro de pilotos, fo
 
 ## Primeiros passos
 
+Ambiente local completo em [docs/AMBIENTE_LOCAL.md](docs/AMBIENTE_LOCAL.md).
+
 Backend:
 
 ```bash

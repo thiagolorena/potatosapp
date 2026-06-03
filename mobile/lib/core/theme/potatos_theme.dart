@@ -32,7 +32,7 @@ class PotatosTheme {
         foregroundColor: PotatosColors.flagWhite,
         elevation: 0,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: PotatosColors.pitWall,
         elevation: 0,
         shape: RoundedRectangleBorder(

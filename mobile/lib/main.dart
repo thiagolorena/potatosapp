@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'core/config/app_config.dart';
 import 'core/services/api_client.dart';
 import 'core/theme/potatos_theme.dart';
 import 'features/auth/login_page.dart';
@@ -14,7 +15,7 @@ class PotatosApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ApiScope(
-      client: ApiClient(baseUrl: 'http://localhost:3000/api'),
+      client: ApiClient(baseUrl: AppConfig.apiBaseUrl),
       child: MaterialApp(
         title: 'Potatos Racing',
         debugShowCheckedModeBanner: false,

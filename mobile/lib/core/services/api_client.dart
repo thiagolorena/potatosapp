@@ -6,10 +6,8 @@ class ApiClient {
       : dio = Dio(BaseOptions(baseUrl: baseUrl, connectTimeout: const Duration(seconds: 10)));
 
   final Dio dio;
-  String? _token;
 
   void setToken(String token) {
-    _token = token;
     dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
