@@ -505,23 +505,28 @@ class _StandingsAdminTab extends StatefulWidget {
 }
 
 class _StandingsAdminTabState extends State<_StandingsAdminTab> {
-  final position = TextEditingController();
-  final points = TextEditingController();
-  final wins = TextEditingController(text: '0');
-  final poles = TextEditingController(text: '0');
-  final fastestLaps = TextEditingController(text: '0');
-  final races = TextEditingController(text: '0');
   List<dynamic> categories = [];
   List<dynamic> pilots = [];
   List<dynamic> rows = [];
+  List<_StandingDraft> drafts = [];
   int? categoryId;
-  int? userId;
-  Map<String, dynamic>? selected;
+  bool loadingBase = false;
+  bool loadingRows = false;
+  bool savingRows = false;
+  String? loadError;
 
   @override
   void initState() {
     super.initState();
-    loadBase();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) loadBase();
+    });
+  }
+
+  @override
+  void dispose() {
+    clearDrafts();
+    super.dispose();
   }
 
   @override
@@ -537,91 +542,137 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
   }
 
   Future<void> loadBase() async {
-    await _guard(context, () async {
+    setState(() {
+      loadingBase = true;
+      loadError = null;
+    });
+    try {
       final api = ApiScope.of(context);
       final results = await Future.wait([api.adminCategories(), api.pilots()]);
       if (!mounted) return;
       setState(() {
         categories = results[0].data as List<dynamic>;
         pilots = results[1].data as List<dynamic>;
+        loadingBase = false;
       });
-    }, successMessage: null);
+      buildDrafts();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        loadingBase = false;
+        loadError = _errorMessage(
+            error, 'Nao foi possivel carregar categorias e pilotos.');
+      });
+    }
   }
 
   Future<void> loadRows() async {
-    if (categoryId == null) return;
-    final result = await ApiScope.of(context).standings(categoryId!);
-    setState(() => rows = result.data as List<dynamic>);
-  }
-
-  void edit(Map<String, dynamic> row) {
+    if (categoryId == null) {
+      setState(() {
+        rows = [];
+        clearDrafts();
+        drafts = [];
+      });
+      return;
+    }
     setState(() {
-      selected = row;
-      categoryId = row['categoryId'] as int?;
-      userId = row['userId'] as int?;
-      position.text = '${row['position'] ?? ''}';
-      points.text = '${row['points'] ?? ''}';
-      wins.text = '${row['wins'] ?? 0}';
-      poles.text = '${row['poles'] ?? 0}';
-      fastestLaps.text = '${row['fastestLaps'] ?? 0}';
-      races.text = '${row['races'] ?? 0}';
+      loadingRows = true;
+      loadError = null;
     });
-  }
-
-  void clear() {
-    setState(() {
-      selected = null;
-      userId = null;
-      position.clear();
-      points.clear();
-      wins.text = '0';
-      poles.text = '0';
-      fastestLaps.text = '0';
-      races.text = '0';
-    });
+    try {
+      final result = await ApiScope.of(context).standings(categoryId!);
+      if (!mounted) return;
+      setState(() {
+        rows = result.data as List<dynamic>;
+        loadingRows = false;
+      });
+      buildDrafts();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        loadingRows = false;
+        loadError =
+            _errorMessage(error, 'Nao foi possivel carregar classificacao.');
+      });
+    }
   }
 
   Future<void> save() async {
-    if (categoryId == null || userId == null) {
-      _toast(context, 'Selecione categoria e piloto.');
+    if (categoryId == null) {
+      _toast(context, 'Selecione uma categoria.');
       return;
     }
+    if (drafts.isEmpty) {
+      _toast(context, 'Nenhum piloto encontrado.');
+      return;
+    }
+    final payloads = <_StandingPayload>[];
+    for (final draft in drafts) {
+      final payload = draft.toPayload(categoryId!);
+      if (payload == null) {
+        _toast(context, 'Revise os campos numericos de ${draft.pilotName}.');
+        return;
+      }
+      payloads.add(payload);
+    }
+    setState(() => savingRows = true);
     await _guard(context, () async {
-      Map<String, dynamic>? existing;
-      for (final row in rows) {
-        if (row['userId'] == userId) {
-          existing = Map<String, dynamic>.from(row as Map);
-          break;
+      final api = ApiScope.of(context);
+      for (final payload in payloads) {
+        if (payload.standingId == null) {
+          await api.createStanding(payload.data);
+        } else {
+          await api.updateStanding(payload.standingId!, payload.data);
         }
       }
-      final data = {
-        'categoryId': categoryId,
-        'userId': userId,
-        'position': int.parse(position.text.trim()),
-        'points': int.parse(points.text.trim()),
-        'wins': int.parse(wins.text.trim()),
-        'poles': int.parse(poles.text.trim()),
-        'fastestLaps': int.parse(fastestLaps.text.trim()),
-        'races': int.parse(races.text.trim()),
-      };
-      final selectedId = selected == null ? null : selected!['id'] as int;
-      final existingId = existing == null ? null : existing['id'] as int;
-      final idToUpdate = selectedId ?? existingId;
-      if (idToUpdate == null) {
-        await ApiScope.of(context).createStanding(data);
-      } else {
-        await ApiScope.of(context).updateStanding(idToUpdate, data);
-      }
-      clear();
       await loadRows();
-    });
+    }, successMessage: 'Classificacao atualizada.');
+    if (mounted) setState(() => savingRows = false);
+  }
+
+  void clearDrafts() {
+    for (final draft in drafts) {
+      draft.dispose();
+    }
+  }
+
+  void buildDrafts() {
+    clearDrafts();
+    final existingByUserId = <int, Map<String, dynamic>>{};
+    for (final row in rows) {
+      existingByUserId[row['userId'] as int] = Map<String, dynamic>.from(row);
+    }
+    final nextDrafts = <_StandingDraft>[];
+    for (var index = 0; index < pilots.length; index++) {
+      final pilot = Map<String, dynamic>.from(pilots[index] as Map);
+      final row = existingByUserId[pilot['id'] as int];
+      nextDrafts.add(_StandingDraft(
+        standingId: row?['id'] as int?,
+        userId: pilot['id'] as int,
+        pilotName: pilot['name'] as String,
+        position: row?['position'] as int? ?? index + 1,
+        points: row?['points'] as int? ?? 0,
+        wins: row?['wins'] as int? ?? 0,
+        poles: row?['poles'] as int? ?? 0,
+        fastestLaps: row?['fastestLaps'] as int? ?? 0,
+        races: row?['races'] as int? ?? 0,
+      ));
+    }
+    if (!mounted) {
+      for (final draft in nextDrafts) {
+        draft.dispose();
+      }
+      return;
+    }
+    setState(() => drafts = nextDrafts);
   }
 
   @override
   Widget build(BuildContext context) {
     return _AdminList(
       title: 'Classificacao',
-      subtitle: 'Atualize pontos, posicao e estatisticas dos pilotos.',
+      subtitle:
+          'Selecione a categoria e atualize todos os pilotos em uma unica tabela.',
       form: Column(
         children: [
           _CategoryDropdown(
@@ -629,101 +680,205 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
             value: categoryId,
             onRefresh: loadBase,
             onChanged: (value) async {
-              setState(() => categoryId = value);
+              setState(() {
+                categoryId = value;
+                rows = [];
+                clearDrafts();
+                drafts = [];
+              });
               await loadRows();
             },
           ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<int>(
-            key: ValueKey(userId),
-            initialValue: userId,
-            decoration: const InputDecoration(labelText: 'Piloto'),
-            items: [
-              for (final pilot in pilots)
-                DropdownMenuItem(
-                    value: pilot['id'] as int,
-                    child: Text(pilot['name'] as String)),
-            ],
-            onChanged: (value) => setState(() => userId = value),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                  child: TextField(
-                      controller: position,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Posicao'))),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: TextField(
-                      controller: points,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Pontos'))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                  child: TextField(
-                      controller: wins,
-                      keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'Vitorias'))),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: TextField(
-                      controller: poles,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Poles'))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                  child: TextField(
-                      controller: fastestLaps,
-                      keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'Voltas rapidas'))),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: TextField(
-                      controller: races,
-                      keyboardType: TextInputType.number,
-                      decoration:
-                          const InputDecoration(labelText: 'Corridas'))),
-            ],
-          ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                  child: ElevatedButton(
-                      onPressed: save,
-                      child: Text(selected == null
-                          ? 'Salvar piloto'
-                          : 'Atualizar piloto'))),
-              if (selected != null) ...[
-                const SizedBox(width: 10),
-                IconButton(onPressed: clear, icon: const Icon(Icons.close)),
-              ],
-            ],
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: categoryId == null || savingRows || drafts.isEmpty
+                  ? null
+                  : save,
+              icon: savingRows
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(
+                  savingRows ? 'Salvando...' : 'Salvar classificacao completa'),
+            ),
           ),
         ],
       ),
       children: [
-        for (final row in rows)
-          _AdminRow(
-            title: 'Pos. ${row['position']} - ${row['user']['name']}',
-            subtitle:
-                '${row['points']} pts | V ${row['wins']} | P ${row['poles']} | VR ${row['fastestLaps']}',
-            badge: '${row['races']} corridas',
-            onTap: () => edit(Map<String, dynamic>.from(row as Map)),
+        if (loadingBase || loadingRows)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Center(child: CircularProgressIndicator()),
           ),
+        if (loadError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _AdminInlineError(message: loadError!, onRetry: reload),
+          ),
+        if (categoryId == null)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Text('Selecione uma categoria para editar a classificacao.',
+                style: TextStyle(color: PotatosColors.smoke)),
+          )
+        else if (!loadingRows && drafts.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Text('Nenhum piloto encontrado.',
+                style: TextStyle(color: PotatosColors.smoke)),
+          )
+        else if (drafts.isNotEmpty)
+          _StandingsGrid(drafts: drafts),
       ],
+    );
+  }
+}
+
+class _StandingDraft {
+  _StandingDraft({
+    required this.standingId,
+    required this.userId,
+    required this.pilotName,
+    required int position,
+    required int points,
+    required int wins,
+    required int poles,
+    required int fastestLaps,
+    required int races,
+  })  : position = TextEditingController(text: '$position'),
+        points = TextEditingController(text: '$points'),
+        wins = TextEditingController(text: '$wins'),
+        poles = TextEditingController(text: '$poles'),
+        fastestLaps = TextEditingController(text: '$fastestLaps'),
+        races = TextEditingController(text: '$races');
+
+  final int? standingId;
+  final int userId;
+  final String pilotName;
+  final TextEditingController position;
+  final TextEditingController points;
+  final TextEditingController wins;
+  final TextEditingController poles;
+  final TextEditingController fastestLaps;
+  final TextEditingController races;
+
+  _StandingPayload? toPayload(int categoryId) {
+    final parsedPosition = int.tryParse(position.text.trim());
+    final parsedPoints = int.tryParse(points.text.trim());
+    final parsedWins = int.tryParse(wins.text.trim());
+    final parsedPoles = int.tryParse(poles.text.trim());
+    final parsedFastestLaps = int.tryParse(fastestLaps.text.trim());
+    final parsedRaces = int.tryParse(races.text.trim());
+    if (parsedPosition == null ||
+        parsedPoints == null ||
+        parsedWins == null ||
+        parsedPoles == null ||
+        parsedFastestLaps == null ||
+        parsedRaces == null) {
+      return null;
+    }
+    return _StandingPayload(standingId, {
+      'categoryId': categoryId,
+      'userId': userId,
+      'position': parsedPosition,
+      'points': parsedPoints,
+      'wins': parsedWins,
+      'poles': parsedPoles,
+      'fastestLaps': parsedFastestLaps,
+      'races': parsedRaces,
+    });
+  }
+
+  void dispose() {
+    position.dispose();
+    points.dispose();
+    wins.dispose();
+    poles.dispose();
+    fastestLaps.dispose();
+    races.dispose();
+  }
+}
+
+class _StandingPayload {
+  const _StandingPayload(this.standingId, this.data);
+
+  final int? standingId;
+  final Map<String, dynamic> data;
+}
+
+class _StandingsGrid extends StatelessWidget {
+  const _StandingsGrid({required this.drafts});
+
+  final List<_StandingDraft> drafts;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingTextStyle: const TextStyle(
+            color: PotatosColors.smoke,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+          columns: const [
+            DataColumn(label: Text('Piloto')),
+            DataColumn(label: Text('Pos.')),
+            DataColumn(label: Text('Pts')),
+            DataColumn(label: Text('Vitorias')),
+            DataColumn(label: Text('Poles')),
+            DataColumn(label: Text('Corridas')),
+            DataColumn(label: Text('Voltas rapidas')),
+          ],
+          rows: [
+            for (final draft in drafts)
+              DataRow(
+                cells: [
+                  DataCell(SizedBox(
+                    width: 150,
+                    child: Text(draft.pilotName,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800)),
+                  )),
+                  DataCell(_StandingNumberField(controller: draft.position)),
+                  DataCell(_StandingNumberField(controller: draft.points)),
+                  DataCell(_StandingNumberField(controller: draft.wins)),
+                  DataCell(_StandingNumberField(controller: draft.poles)),
+                  DataCell(_StandingNumberField(controller: draft.races)),
+                  DataCell(_StandingNumberField(controller: draft.fastestLaps)),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StandingNumberField extends StatelessWidget {
+  const _StandingNumberField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 74,
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        decoration: const InputDecoration(
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+        ),
+      ),
     );
   }
 }
