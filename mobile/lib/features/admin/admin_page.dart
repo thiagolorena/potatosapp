@@ -85,11 +85,14 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
   Map<String, dynamic>? selected;
   bool active = true;
   bool loading = false;
+  String? loadError;
 
   @override
   void initState() {
     super.initState();
-    load();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) load();
+    });
   }
 
   @override
@@ -99,16 +102,25 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
   }
 
   Future<void> load() async {
-    setState(() => loading = true);
-    await _guard(context, () async {
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
       final result = await ApiScope.of(context).adminCategories();
       if (!mounted) return;
       setState(() {
         categories = result.data as List<dynamic>;
         loading = false;
       });
-    }, successMessage: null);
-    if (mounted && loading) setState(() => loading = false);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        loadError =
+            _errorMessage(error, 'Nao foi possivel carregar categorias.');
+      });
+    }
   }
 
   void edit(Map<String, dynamic> category) {
@@ -210,6 +222,11 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 18),
             child: Center(child: CircularProgressIndicator()),
+          ),
+        if (loadError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _AdminInlineError(message: loadError!, onRetry: load),
           ),
         for (final item in categories)
           _CategoryAdminRow(
@@ -788,6 +805,40 @@ class _AdminRow extends StatelessWidget {
   }
 }
 
+class _AdminInlineError extends StatelessWidget {
+  const _AdminInlineError({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: PotatosColors.racingOrange.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: PotatosColors.racingOrange.withValues(alpha: 0.32),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_outlined,
+              color: PotatosColors.racingOrange),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message)),
+          IconButton(
+            tooltip: 'Tentar novamente',
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _CategoryAdminRow extends StatelessWidget {
   const _CategoryAdminRow({
     required this.category,
@@ -887,15 +938,18 @@ Future<void> _guard(BuildContext context, Future<void> Function() action,
     }
   } catch (error) {
     if (!context.mounted) return;
-    var message = 'Nao foi possivel salvar.';
-    if (error is DioException) {
-      final data = error.response?.data;
-      if (data is Map && data['message'] != null) {
-        message = data['message'].toString();
-      }
-    }
-    _toast(context, message);
+    _toast(context, _errorMessage(error, 'Nao foi possivel salvar.'));
   }
+}
+
+String _errorMessage(Object error, String fallback) {
+  if (error is DioException) {
+    final data = error.response?.data;
+    if (data is Map && data['message'] != null) {
+      return data['message'].toString();
+    }
+  }
+  return fallback;
 }
 
 void _toast(BuildContext context, String message) {
