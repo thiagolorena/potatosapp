@@ -14,6 +14,7 @@ class AdminPage extends StatefulWidget {
 class _AdminPageState extends State<AdminPage>
     with SingleTickerProviderStateMixin {
   late final TabController controller;
+  int categoriesReloadToken = 0;
   int calendarReloadToken = 0;
   int standingsReloadToken = 0;
   int currentTab = 0;
@@ -29,6 +30,7 @@ class _AdminPageState extends State<AdminPage>
     if (controller.indexIsChanging || controller.index == currentTab) return;
     setState(() {
       currentTab = controller.index;
+      if (currentTab == 0) categoriesReloadToken++;
       if (currentTab == 1) calendarReloadToken++;
       if (currentTab == 2) standingsReloadToken++;
     });
@@ -58,7 +60,7 @@ class _AdminPageState extends State<AdminPage>
       body: TabBarView(
         controller: controller,
         children: [
-          const _CategoriesAdminTab(),
+          _CategoriesAdminTab(reloadToken: categoriesReloadToken),
           _CalendarAdminTab(reloadToken: calendarReloadToken),
           _StandingsAdminTab(reloadToken: standingsReloadToken),
         ],
@@ -68,7 +70,9 @@ class _AdminPageState extends State<AdminPage>
 }
 
 class _CategoriesAdminTab extends StatefulWidget {
-  const _CategoriesAdminTab();
+  const _CategoriesAdminTab({required this.reloadToken});
+
+  final int reloadToken;
 
   @override
   State<_CategoriesAdminTab> createState() => _CategoriesAdminTabState();
@@ -88,9 +92,23 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
     load();
   }
 
+  @override
+  void didUpdateWidget(covariant _CategoriesAdminTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadToken != widget.reloadToken) load();
+  }
+
   Future<void> load() async {
-    final result = await ApiScope.of(context).adminCategories();
-    setState(() => categories = result.data as List<dynamic>);
+    setState(() => loading = true);
+    await _guard(context, () async {
+      final result = await ApiScope.of(context).adminCategories();
+      if (!mounted) return;
+      setState(() {
+        categories = result.data as List<dynamic>;
+        loading = false;
+      });
+    }, successMessage: null);
+    if (mounted && loading) setState(() => loading = false);
   }
 
   void edit(Map<String, dynamic> category) {
@@ -128,11 +146,33 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
     });
   }
 
+  Future<void> toggleActive(Map<String, dynamic> category, bool value) async {
+    await _guard(context, () async {
+      final data = {
+        'name': category['name'],
+        'description': category['description'] ?? '',
+        'active': value,
+      };
+      await ApiScope.of(context).updateCategory(category['id'] as int, data);
+      if (selected?['id'] == category['id']) {
+        setState(() {
+          selected = {...selected!, 'active': value};
+          active = value;
+        });
+      }
+      await load();
+    }, successMessage: value ? 'Categoria ativada.' : 'Categoria desativada.');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final activeCount =
+        categories.where((item) => item['active'] as bool? ?? true).length;
+    final inactiveCount = categories.length - activeCount;
     return _AdminList(
       title: 'Categorias',
-      subtitle: 'Organize turmas, divisioes ou campeonatos da liga.',
+      subtitle:
+          '$activeCount ativas | $inactiveCount inativas. Categorias inativas somem do calendario e da classificacao.',
       form: Column(
         children: [
           TextField(
@@ -166,12 +206,17 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
         ],
       ),
       children: [
+        if (loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Center(child: CircularProgressIndicator()),
+          ),
         for (final item in categories)
-          _AdminRow(
-            title: item['name'] as String,
-            subtitle: item['description'] as String? ?? 'Sem descricao',
-            badge: (item['active'] as bool? ?? true) ? 'ATIVA' : 'INATIVA',
-            onTap: () => edit(Map<String, dynamic>.from(item as Map)),
+          _CategoryAdminRow(
+            category: Map<String, dynamic>.from(item as Map),
+            onTap: () => edit(Map<String, dynamic>.from(item)),
+            onActiveChanged: (value) =>
+                toggleActive(Map<String, dynamic>.from(item), value),
           ),
       ],
     );
@@ -737,6 +782,55 @@ class _AdminRow extends StatelessWidget {
             const SizedBox(height: 4),
             const Icon(Icons.edit_outlined, size: 18),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryAdminRow extends StatelessWidget {
+  const _CategoryAdminRow({
+    required this.category,
+    required this.onTap,
+    required this.onActiveChanged,
+  });
+
+  final Map<String, dynamic> category;
+  final VoidCallback onTap;
+  final ValueChanged<bool> onActiveChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isActive = category['active'] as bool? ?? true;
+    return Card(
+      child: ListTile(
+        onTap: onTap,
+        title: Text(
+          category['name'] as String,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(category['description'] as String? ?? 'Sem descricao'),
+        trailing: SizedBox(
+          width: 118,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                isActive ? 'ATIVA' : 'INATIVA',
+                style: TextStyle(
+                  color: isActive
+                      ? PotatosColors.racingOrange
+                      : PotatosColors.smoke,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+              Switch(
+                value: isActive,
+                onChanged: onActiveChanged,
+              ),
+            ],
+          ),
         ),
       ),
     );

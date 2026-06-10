@@ -43,7 +43,7 @@ export class StandingsController {
   @Get('category/:categoryId')
   listByCategory(@Param('categoryId', ParseIntPipe) categoryId: number) {
     return this.prisma.standing.findMany({
-      where: { categoryId },
+      where: { categoryId, category: { active: true } },
       orderBy: [{ position: 'asc' }, { points: 'desc' }],
       include: {
         user: {

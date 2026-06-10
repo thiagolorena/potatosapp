@@ -42,7 +42,7 @@ export class CalendarController {
   @Get('category/:categoryId')
   listByCategory(@Param('categoryId', ParseIntPipe) categoryId: number) {
     return this.prisma.raceEvent.findMany({
-      where: { categoryId },
+      where: { categoryId, category: { active: true } },
       orderBy: [{ startsAt: 'asc' }, { roundNumber: 'asc' }],
     });
   }
