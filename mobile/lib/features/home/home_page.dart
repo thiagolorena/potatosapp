@@ -1,74 +1,63 @@
 import 'package:flutter/material.dart';
 
+import '../../core/config/app_config.dart';
+import '../../core/theme/potatos_theme.dart';
 import '../admin/admin_page.dart';
 import '../calendar/category_calendar_page.dart';
 import '../standings/category_standings_page.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  const HomePage({required this.user, super.key});
+
+  final Map<String, dynamic> user;
 
   @override
   Widget build(BuildContext context) {
+    final userId = user['id'] as int?;
+    final name = user['name'] as String? ?? 'Piloto';
+    final role = (user['role'] as String? ?? 'PILOT').toUpperCase();
+    final isAdmin = role == 'ADMIN';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Box Potatos'),
         actions: [
-          IconButton(
-            tooltip: 'Administrativo',
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminPage())),
-            icon: const Icon(Icons.admin_panel_settings_outlined),
-          ),
+          if (isAdmin)
+            IconButton(
+              tooltip: 'Administrativo',
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const AdminPage())),
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+            ),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.zero,
         children: [
-          Text('Box Potatos', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          const Text('Acompanhe sua liga sem depender de planilhas.', style: TextStyle(color: Colors.white70)),
-          const SizedBox(height: 18),
-          const _NextRaceStrip(),
-          const SizedBox(height: 16),
-          _HomeAction(
-            icon: Icons.event_available_outlined,
-            title: 'Calendario',
-            subtitle: 'Veja as etapas por categoria.',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoryCalendarPage())),
-          ),
-          _HomeAction(
-            icon: Icons.leaderboard_outlined,
-            title: 'Classificacao',
-            subtitle: 'Acompanhe a tabela do campeonato.',
-            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CategoryStandingsPage())),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NextRaceStrip extends StatelessWidget {
-  const _NextRaceStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1B1D22),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF2D3037)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.local_fire_department_outlined, color: Color(0xFFFF6210)),
-          SizedBox(width: 12),
-          Expanded(
+          _PilotHeader(name: name, userId: userId),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 28),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Paddock ativo', style: TextStyle(fontWeight: FontWeight.w900)),
-                Text('Calendario e ranking separados por categoria.', style: TextStyle(color: Colors.white70)),
+                _HomeAction(
+                  icon: Icons.event_available_outlined,
+                  title: 'Calendario',
+                  subtitle: 'Etapas e horarios por categoria',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CategoryCalendarPage()),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _HomeAction(
+                  icon: Icons.leaderboard_outlined,
+                  title: 'Classificacao',
+                  subtitle: 'Tabela, pontos e estatisticas',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) => const CategoryStandingsPage()),
+                  ),
+                ),
               ],
             ),
           ),
@@ -78,8 +67,105 @@ class _NextRaceStrip extends StatelessWidget {
   }
 }
 
+class _PilotHeader extends StatelessWidget {
+  const _PilotHeader({required this.name, required this.userId});
+
+  final String name;
+  final int? userId;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 30),
+      decoration: const BoxDecoration(
+        color: PotatosColors.asphalt,
+        border: Border(
+          bottom: BorderSide(color: PotatosColors.gridLine),
+        ),
+      ),
+      child: Column(
+        children: [
+          _PilotAvatar(userId: userId),
+          const SizedBox(height: 16),
+          Text(
+            name,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontSize: 26,
+                  color: PotatosColors.flagWhite,
+                ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Piloto',
+            style: TextStyle(
+              color: PotatosColors.smoke,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PilotAvatar extends StatelessWidget {
+  const _PilotAvatar({required this.userId});
+
+  final int? userId;
+
+  @override
+  Widget build(BuildContext context) {
+    final photoUrl =
+        userId == null ? null : '${AppConfig.apiBaseUrl}/users/$userId/photo';
+
+    return Container(
+      width: 108,
+      height: 108,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: PotatosColors.gridLine, width: 2),
+        color: PotatosColors.pitWall,
+      ),
+      child: ClipOval(
+        child: photoUrl == null
+            ? const _AvatarFallback()
+            : Image.network(
+                photoUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const _AvatarFallback(),
+              ),
+      ),
+    );
+  }
+}
+
+class _AvatarFallback extends StatelessWidget {
+  const _AvatarFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ColoredBox(
+      color: PotatosColors.pitWall,
+      child: Icon(
+        Icons.sports_motorsports,
+        color: PotatosColors.racingOrange,
+        size: 46,
+      ),
+    );
+  }
+}
+
 class _HomeAction extends StatelessWidget {
-  const _HomeAction({required this.icon, required this.title, required this.subtitle, required this.onTap});
+  const _HomeAction({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String title;
@@ -88,15 +174,55 @@ class _HomeAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 14),
-      child: ListTile(
-        minVerticalPadding: 18,
-        leading: Icon(icon, size: 32, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+    return Material(
+      color: PotatosColors.pitWall,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: const BorderSide(color: PotatosColors.gridLine),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: PotatosColors.racingOrange.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: PotatosColors.racingOrange),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: PotatosColors.smoke,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: PotatosColors.smoke),
+            ],
+          ),
+        ),
       ),
     );
   }
