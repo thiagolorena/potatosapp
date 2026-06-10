@@ -160,13 +160,13 @@ class _CalendarAdminTab extends StatefulWidget {
 class _CalendarAdminTabState extends State<_CalendarAdminTab> {
   final title = TextEditingController();
   final track = TextEditingController();
-  final city = TextEditingController();
   final round = TextEditingController();
   final startsAt = TextEditingController();
   final notes = TextEditingController();
   List<dynamic> categories = [];
   List<dynamic> events = [];
   int? categoryId;
+  DateTime? selectedStartsAt;
   String status = 'SCHEDULED';
   Map<String, dynamic>? selected;
 
@@ -196,9 +196,9 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       categoryId = event['categoryId'] as int?;
       title.text = event['title'] as String? ?? '';
       track.text = event['trackName'] as String? ?? '';
-      city.text = event['city'] as String? ?? '';
       round.text = '${event['roundNumber'] ?? ''}';
-      startsAt.text = ((event['startsAt'] as String?) ?? '').replaceFirst('T', ' ').split('.').first;
+      selectedStartsAt = DateTime.tryParse(event['startsAt'] as String? ?? '');
+      startsAt.text = _formatDateTime(selectedStartsAt);
       status = event['status'] as String? ?? 'SCHEDULED';
       notes.text = event['notes'] as String? ?? '';
     });
@@ -209,11 +209,35 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       selected = null;
       title.clear();
       track.clear();
-      city.clear();
       round.clear();
       startsAt.clear();
+      selectedStartsAt = null;
       notes.clear();
       status = 'SCHEDULED';
+    });
+  }
+
+  Future<void> pickStartsAt() async {
+    final now = DateTime.now();
+    final initial = selectedStartsAt ?? now;
+    final date = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 5),
+    );
+    if (date == null || !mounted) return;
+
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (time == null) return;
+
+    final value = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    setState(() {
+      selectedStartsAt = value;
+      startsAt.text = _formatDateTime(value);
     });
   }
 
@@ -222,15 +246,26 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       _toast(context, 'Selecione uma categoria.');
       return;
     }
+    if (title.text.trim().isEmpty || track.text.trim().isEmpty || round.text.trim().isEmpty) {
+      _toast(context, 'Preencha etapa, pista e rodada.');
+      return;
+    }
+    if (selectedStartsAt == null) {
+      _toast(context, 'Selecione data e hora da etapa.');
+      return;
+    }
+    final roundNumber = int.tryParse(round.text.trim());
+    if (roundNumber == null) {
+      _toast(context, 'Rodada deve ser um numero.');
+      return;
+    }
     await _guard(context, () async {
-      final parsedDate = DateTime.parse(startsAt.text.trim().replaceFirst(' ', 'T'));
       final data = {
         'categoryId': categoryId,
         'title': title.text.trim(),
         'trackName': track.text.trim(),
-        'city': city.text.trim(),
-        'roundNumber': int.parse(round.text.trim()),
-        'startsAt': parsedDate.toIso8601String(),
+        'roundNumber': roundNumber,
+        'startsAt': selectedStartsAt!.toIso8601String(),
         'status': status,
         'notes': notes.text.trim(),
       };
@@ -265,13 +300,21 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
           const SizedBox(height: 12),
           TextField(controller: track, decoration: const InputDecoration(labelText: 'Pista')),
           const SizedBox(height: 12),
-          TextField(controller: city, decoration: const InputDecoration(labelText: 'Cidade')),
-          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(child: TextField(controller: round, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Rodada'))),
               const SizedBox(width: 10),
-              Expanded(child: TextField(controller: startsAt, decoration: const InputDecoration(labelText: 'Data e hora'))),
+              Expanded(
+                child: TextField(
+                  controller: startsAt,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Data e hora',
+                    suffixIcon: Icon(Icons.calendar_month_outlined),
+                  ),
+                  onTap: pickStartsAt,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -618,4 +661,14 @@ Future<void> _guard(BuildContext context, Future<void> Function() action, {Strin
 
 void _toast(BuildContext context, String message) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+}
+
+String _formatDateTime(DateTime? value) {
+  if (value == null) return '';
+  final day = value.day.toString().padLeft(2, '0');
+  final month = value.month.toString().padLeft(2, '0');
+  final year = value.year.toString();
+  final hour = value.hour.toString().padLeft(2, '0');
+  final minute = value.minute.toString().padLeft(2, '0');
+  return '$day/$month/$year $hour:$minute';
 }
