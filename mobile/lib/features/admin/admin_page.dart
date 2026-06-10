@@ -177,8 +177,11 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
   }
 
   Future<void> loadCategories() async {
-    final result = await ApiScope.of(context).adminCategories();
-    setState(() => categories = result.data as List<dynamic>);
+    await _guard(context, () async {
+      final result = await ApiScope.of(context).adminCategories();
+      if (!mounted) return;
+      setState(() => categories = result.data as List<dynamic>);
+    }, successMessage: null);
   }
 
   Future<void> loadEvents() async {
@@ -248,10 +251,15 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       subtitle: 'Cadastre etapas, pistas, horarios e status da corrida.',
       form: Column(
         children: [
-          _CategoryDropdown(categories: categories, value: categoryId, onChanged: (value) async {
-            setState(() => categoryId = value);
-            await loadEvents();
-          }),
+          _CategoryDropdown(
+            categories: categories,
+            value: categoryId,
+            onRefresh: loadCategories,
+            onChanged: (value) async {
+              setState(() => categoryId = value);
+              await loadEvents();
+            },
+          ),
           const SizedBox(height: 12),
           TextField(controller: title, decoration: const InputDecoration(labelText: 'Titulo da etapa')),
           const SizedBox(height: 12),
@@ -333,12 +341,15 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
   }
 
   Future<void> loadBase() async {
-    final api = ApiScope.of(context);
-    final results = await Future.wait([api.adminCategories(), api.pilots()]);
-    setState(() {
-      categories = results[0].data as List<dynamic>;
-      pilots = results[1].data as List<dynamic>;
-    });
+    await _guard(context, () async {
+      final api = ApiScope.of(context);
+      final results = await Future.wait([api.adminCategories(), api.pilots()]);
+      if (!mounted) return;
+      setState(() {
+        categories = results[0].data as List<dynamic>;
+        pilots = results[1].data as List<dynamic>;
+      });
+    }, successMessage: null);
   }
 
   Future<void> loadRows() async {
@@ -417,10 +428,15 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
       subtitle: 'Atualize pontos, posicao e estatisticas dos pilotos.',
       form: Column(
         children: [
-          _CategoryDropdown(categories: categories, value: categoryId, onChanged: (value) async {
-            setState(() => categoryId = value);
-            await loadRows();
-          }),
+          _CategoryDropdown(
+            categories: categories,
+            value: categoryId,
+            onRefresh: loadBase,
+            onChanged: (value) async {
+              setState(() => categoryId = value);
+              await loadRows();
+            },
+          ),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(
             key: ValueKey(userId),
@@ -471,7 +487,7 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
       children: [
         for (final row in rows)
           _AdminRow(
-            title: '${row['position']}º ${row['user']['name']}',
+            title: 'Pos. ${row['position']} - ${row['user']['name']}',
             subtitle: '${row['points']} pts | V ${row['wins']} | P ${row['poles']} | VR ${row['fastestLaps']}',
             badge: '${row['races']} corridas',
             onTap: () => edit(Map<String, dynamic>.from(row as Map)),
@@ -547,31 +563,46 @@ class _AdminRow extends StatelessWidget {
 }
 
 class _CategoryDropdown extends StatelessWidget {
-  const _CategoryDropdown({required this.categories, required this.value, required this.onChanged});
+  const _CategoryDropdown({
+    required this.categories,
+    required this.value,
+    required this.onChanged,
+    required this.onRefresh,
+  });
 
   final List<dynamic> categories;
   final int? value;
   final ValueChanged<int?> onChanged;
+  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<int>(
       key: ValueKey(value),
       initialValue: value,
-      decoration: const InputDecoration(labelText: 'Categoria'),
+      decoration: InputDecoration(
+        labelText: 'Categoria',
+        helperText: categories.isEmpty ? 'Nenhuma categoria carregada' : '${categories.length} categorias carregadas',
+        suffixIcon: IconButton(
+          tooltip: 'Atualizar categorias',
+          icon: const Icon(Icons.refresh),
+          onPressed: onRefresh,
+        ),
+      ),
       items: [
         for (final category in categories)
           DropdownMenuItem(value: category['id'] as int, child: Text(category['name'] as String)),
       ],
+      onTap: onRefresh,
       onChanged: onChanged,
     );
   }
 }
 
-Future<void> _guard(BuildContext context, Future<void> Function() action) async {
+Future<void> _guard(BuildContext context, Future<void> Function() action, {String? successMessage = 'Registro salvo.'}) async {
   try {
     await action();
-    if (context.mounted) _toast(context, 'Registro salvo.');
+    if (context.mounted && successMessage != null) _toast(context, successMessage);
   } catch (error) {
     if (!context.mounted) return;
     var message = 'Nao foi possivel salvar.';
