@@ -811,50 +811,78 @@ class _StandingPayload {
   final Map<String, dynamic> data;
 }
 
-class _StandingsGrid extends StatelessWidget {
+class _StandingsGrid extends StatefulWidget {
   const _StandingsGrid({required this.drafts});
 
   final List<_StandingDraft> drafts;
 
   @override
+  State<_StandingsGrid> createState() => _StandingsGridState();
+}
+
+class _StandingsGridState extends State<_StandingsGrid> {
+  final horizontalController = ScrollController();
+
+  @override
+  void dispose() {
+    horizontalController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Card(
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: DataTable(
-          headingTextStyle: const TextStyle(
-            color: PotatosColors.smoke,
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-          ),
-          columns: const [
-            DataColumn(label: Text('Piloto')),
-            DataColumn(label: Text('Pos.')),
-            DataColumn(label: Text('Pts')),
-            DataColumn(label: Text('Vitorias')),
-            DataColumn(label: Text('Poles')),
-            DataColumn(label: Text('Corridas')),
-            DataColumn(label: Text('Voltas rapidas')),
-          ],
-          rows: [
-            for (final draft in drafts)
-              DataRow(
-                cells: [
-                  DataCell(SizedBox(
-                    width: 150,
-                    child: Text(draft.pilotName,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800)),
-                  )),
-                  DataCell(_StandingNumberField(controller: draft.position)),
-                  DataCell(_StandingNumberField(controller: draft.points)),
-                  DataCell(_StandingNumberField(controller: draft.wins)),
-                  DataCell(_StandingNumberField(controller: draft.poles)),
-                  DataCell(_StandingNumberField(controller: draft.races)),
-                  DataCell(_StandingNumberField(controller: draft.fastestLaps)),
-                ],
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Scrollbar(
+          controller: horizontalController,
+          thumbVisibility: true,
+          notificationPredicate: (notification) =>
+              notification.metrics.axis == Axis.horizontal,
+          child: SingleChildScrollView(
+            controller: horizontalController,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.only(bottom: 16),
+            child: DataTable(
+              columnSpacing: 18,
+              headingTextStyle: const TextStyle(
+                color: PotatosColors.smoke,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
               ),
-          ],
+              columns: const [
+                DataColumn(label: Text('Piloto')),
+                DataColumn(label: Text('Pos.')),
+                DataColumn(label: Text('Pts')),
+                DataColumn(label: Text('Vitorias')),
+                DataColumn(label: Text('Poles')),
+                DataColumn(label: Text('Corridas')),
+                DataColumn(label: Text('Voltas rapidas')),
+              ],
+              rows: [
+                for (final draft in widget.drafts)
+                  DataRow(
+                    cells: [
+                      DataCell(SizedBox(
+                        width: 150,
+                        child: Text(draft.pilotName,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w800)),
+                      )),
+                      DataCell(
+                          _StandingNumberField(controller: draft.position)),
+                      DataCell(_StandingNumberField(controller: draft.points)),
+                      DataCell(_StandingNumberField(controller: draft.wins)),
+                      DataCell(_StandingNumberField(controller: draft.poles)),
+                      DataCell(_StandingNumberField(controller: draft.races)),
+                      DataCell(
+                          _StandingNumberField(controller: draft.fastestLaps)),
+                    ],
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
