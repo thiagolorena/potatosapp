@@ -107,6 +107,7 @@ model RaceEvent {
   updatedAt   DateTime    @updatedAt @map("updated_at")
 
   @@index([categoryId, startsAt])
+  @@unique([categoryId, roundNumber])
   @@map("race_events")
 }
 

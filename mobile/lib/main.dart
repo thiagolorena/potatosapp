@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'core/config/app_config.dart';
+import 'core/navigation/app_route_observer.dart';
 import 'core/services/api_client.dart';
 import 'core/theme/potatos_theme.dart';
 import 'features/auth/login_page.dart';
@@ -22,6 +23,7 @@ class PotatosApp extends StatelessWidget {
         theme: PotatosTheme.light(),
         darkTheme: PotatosTheme.dark(),
         themeMode: ThemeMode.dark,
+        navigatorObservers: [appRouteObserver],
         home: const LoginPage(),
       ),
     );

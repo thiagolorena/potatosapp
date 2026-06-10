@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/navigation/app_route_observer.dart';
 import '../../core/services/api_client.dart';
 import '../../core/theme/potatos_theme.dart';
 
@@ -10,18 +11,47 @@ class CategoryCalendarPage extends StatefulWidget {
   State<CategoryCalendarPage> createState() => _CategoryCalendarPageState();
 }
 
-class _CategoryCalendarPageState extends State<CategoryCalendarPage> {
+class _CategoryCalendarPageState extends State<CategoryCalendarPage>
+    with RouteAware {
   int? selectedCategory;
   List<dynamic> categories = [];
   List<dynamic> events = [];
   bool loadingCategories = true;
   bool loadingEvents = false;
   String? errorMessage;
+  bool subscribedToRoute = false;
+  bool loadedOnce = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (!subscribedToRoute && route is PageRoute<dynamic>) {
+      appRouteObserver.subscribe(this, route);
+      subscribedToRoute = true;
+    }
+    if (!loadedOnce) {
+      loadedOnce = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) loadCategories();
+      });
+    }
+  }
+
+  @override
+  void didPopNext() {
     loadCategories();
+  }
+
+  @override
+  void didPush() {
+    if (loadedOnce) loadCategories();
+  }
+
+  @override
+  void dispose() {
+    if (subscribedToRoute) appRouteObserver.unsubscribe(this);
+    super.dispose();
   }
 
   Future<void> loadCategories() async {

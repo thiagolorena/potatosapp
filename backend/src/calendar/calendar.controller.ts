@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, ConflictException, Controller, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { EventStatus, UserRole } from '@prisma/client';
 import { IsDateString, IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -50,7 +50,8 @@ export class CalendarController {
   @Post()
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  create(@Body() dto: RaceEventDto) {
+  async create(@Body() dto: RaceEventDto) {
+    await this.ensureRoundIsAvailable(dto.categoryId, dto.roundNumber);
     return this.prisma.raceEvent.create({
       data: { ...dto, startsAt: new Date(dto.startsAt) },
     });
@@ -59,10 +60,26 @@ export class CalendarController {
   @Put(':id')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  update(@Param('id', ParseIntPipe) id: number, @Body() dto: RaceEventDto) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() dto: RaceEventDto) {
+    await this.ensureRoundIsAvailable(dto.categoryId, dto.roundNumber, id);
     return this.prisma.raceEvent.update({
       where: { id },
       data: { ...dto, startsAt: new Date(dto.startsAt) },
     });
+  }
+
+  private async ensureRoundIsAvailable(categoryId: number, roundNumber: number, ignoredEventId?: number) {
+    const existing = await this.prisma.raceEvent.findFirst({
+      where: {
+        categoryId,
+        roundNumber,
+        ...(ignoredEventId ? { id: { not: ignoredEventId } } : {}),
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new ConflictException('Ja existe uma etapa com esta rodada nesta categoria.');
+    }
   }
 }

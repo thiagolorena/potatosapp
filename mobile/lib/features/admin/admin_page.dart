@@ -310,6 +310,16 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       _toast(context, 'Rodada deve ser um numero.');
       return;
     }
+    final selectedId = selected == null ? null : selected!['id'] as int?;
+    final hasDuplicateRound = events.any((event) {
+      final eventId = event['id'] as int?;
+      final eventRound = event['roundNumber'] as int?;
+      return eventId != selectedId && eventRound == roundNumber;
+    });
+    if (hasDuplicateRound) {
+      _toast(context, 'Ja existe uma etapa com esta rodada na categoria.');
+      return;
+    }
     await _guard(context, () async {
       final data = {
         'categoryId': categoryId,
