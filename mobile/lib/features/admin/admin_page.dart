@@ -11,17 +11,32 @@ class AdminPage extends StatefulWidget {
   State<AdminPage> createState() => _AdminPageState();
 }
 
-class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMixin {
+class _AdminPageState extends State<AdminPage>
+    with SingleTickerProviderStateMixin {
   late final TabController controller;
+  int calendarReloadToken = 0;
+  int standingsReloadToken = 0;
+  int currentTab = 0;
 
   @override
   void initState() {
     super.initState();
     controller = TabController(length: 3, vsync: this);
+    controller.addListener(handleTabChange);
+  }
+
+  void handleTabChange() {
+    if (controller.indexIsChanging || controller.index == currentTab) return;
+    setState(() {
+      currentTab = controller.index;
+      if (currentTab == 1) calendarReloadToken++;
+      if (currentTab == 2) standingsReloadToken++;
+    });
   }
 
   @override
   void dispose() {
+    controller.removeListener(handleTabChange);
     controller.dispose();
     super.dispose();
   }
@@ -42,10 +57,10 @@ class _AdminPageState extends State<AdminPage> with SingleTickerProviderStateMix
       ),
       body: TabBarView(
         controller: controller,
-        children: const [
-          _CategoriesAdminTab(),
-          _CalendarAdminTab(),
-          _StandingsAdminTab(),
+        children: [
+          const _CategoriesAdminTab(),
+          _CalendarAdminTab(reloadToken: calendarReloadToken),
+          _StandingsAdminTab(reloadToken: standingsReloadToken),
         ],
       ),
     );
@@ -98,7 +113,11 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
 
   Future<void> save() async {
     await _guard(context, () async {
-      final data = {'name': name.text.trim(), 'description': description.text.trim(), 'active': active};
+      final data = {
+        'name': name.text.trim(),
+        'description': description.text.trim(),
+        'active': active
+      };
       if (selected == null) {
         await ApiScope.of(context).createCategory(data);
       } else {
@@ -116,9 +135,14 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
       subtitle: 'Organize turmas, divisioes ou campeonatos da liga.',
       form: Column(
         children: [
-          TextField(controller: name, decoration: const InputDecoration(labelText: 'Nome da categoria')),
+          TextField(
+              controller: name,
+              decoration:
+                  const InputDecoration(labelText: 'Nome da categoria')),
           const SizedBox(height: 12),
-          TextField(controller: description, decoration: const InputDecoration(labelText: 'Descricao')),
+          TextField(
+              controller: description,
+              decoration: const InputDecoration(labelText: 'Descricao')),
           const SizedBox(height: 10),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -128,7 +152,11 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
           ),
           Row(
             children: [
-              Expanded(child: ElevatedButton(onPressed: save, child: Text(selected == null ? 'Cadastrar' : 'Atualizar'))),
+              Expanded(
+                  child: ElevatedButton(
+                      onPressed: save,
+                      child:
+                          Text(selected == null ? 'Cadastrar' : 'Atualizar'))),
               if (selected != null) ...[
                 const SizedBox(width: 10),
                 IconButton(onPressed: clear, icon: const Icon(Icons.close)),
@@ -151,7 +179,9 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
 }
 
 class _CalendarAdminTab extends StatefulWidget {
-  const _CalendarAdminTab();
+  const _CalendarAdminTab({required this.reloadToken});
+
+  final int reloadToken;
 
   @override
   State<_CalendarAdminTab> createState() => _CalendarAdminTabState();
@@ -174,6 +204,18 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
   void initState() {
     super.initState();
     loadCategories();
+  }
+
+  @override
+  void didUpdateWidget(covariant _CalendarAdminTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadToken != widget.reloadToken) reload();
+  }
+
+  Future<void> reload() async {
+    if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+    await loadCategories();
+    await loadEvents();
   }
 
   Future<void> loadCategories() async {
@@ -231,10 +273,17 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(initial),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
     if (time == null) return;
 
-    final value = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+    final value =
+        DateTime(date.year, date.month, date.day, time.hour, time.minute);
     setState(() {
       selectedStartsAt = value;
       startsAt.text = _formatDateTime(value);
@@ -246,7 +295,9 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       _toast(context, 'Selecione uma categoria.');
       return;
     }
-    if (title.text.trim().isEmpty || track.text.trim().isEmpty || round.text.trim().isEmpty) {
+    if (title.text.trim().isEmpty ||
+        track.text.trim().isEmpty ||
+        round.text.trim().isEmpty) {
       _toast(context, 'Preencha etapa, pista e rodada.');
       return;
     }
@@ -272,7 +323,8 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       if (selected == null) {
         await ApiScope.of(context).createCalendarEvent(data);
       } else {
-        await ApiScope.of(context).updateCalendarEvent(selected!['id'] as int, data);
+        await ApiScope.of(context)
+            .updateCalendarEvent(selected!['id'] as int, data);
       }
       clear();
       await loadEvents();
@@ -296,13 +348,21 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
             },
           ),
           const SizedBox(height: 12),
-          TextField(controller: title, decoration: const InputDecoration(labelText: 'Titulo da etapa')),
+          TextField(
+              controller: title,
+              decoration: const InputDecoration(labelText: 'Titulo da etapa')),
           const SizedBox(height: 12),
-          TextField(controller: track, decoration: const InputDecoration(labelText: 'Pista')),
+          TextField(
+              controller: track,
+              decoration: const InputDecoration(labelText: 'Pista')),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: TextField(controller: round, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Rodada'))),
+              Expanded(
+                  child: TextField(
+                      controller: round,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Rodada'))),
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
@@ -330,11 +390,18 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
             onChanged: (value) => setState(() => status = value ?? 'SCHEDULED'),
           ),
           const SizedBox(height: 12),
-          TextField(controller: notes, decoration: const InputDecoration(labelText: 'Observacoes')),
+          TextField(
+              controller: notes,
+              decoration: const InputDecoration(labelText: 'Observacoes')),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: ElevatedButton(onPressed: save, child: Text(selected == null ? 'Cadastrar etapa' : 'Atualizar etapa'))),
+              Expanded(
+                  child: ElevatedButton(
+                      onPressed: save,
+                      child: Text(selected == null
+                          ? 'Cadastrar etapa'
+                          : 'Atualizar etapa'))),
               if (selected != null) ...[
                 const SizedBox(width: 10),
                 IconButton(onPressed: clear, icon: const Icon(Icons.close)),
@@ -357,7 +424,9 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
 }
 
 class _StandingsAdminTab extends StatefulWidget {
-  const _StandingsAdminTab();
+  const _StandingsAdminTab({required this.reloadToken});
+
+  final int reloadToken;
 
   @override
   State<_StandingsAdminTab> createState() => _StandingsAdminTabState();
@@ -381,6 +450,18 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
   void initState() {
     super.initState();
     loadBase();
+  }
+
+  @override
+  void didUpdateWidget(covariant _StandingsAdminTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadToken != widget.reloadToken) reload();
+  }
+
+  Future<void> reload() async {
+    if (mounted) ScaffoldMessenger.of(context).clearSnackBars();
+    await loadBase();
+    await loadRows();
   }
 
   Future<void> loadBase() async {
@@ -487,38 +568,72 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
             decoration: const InputDecoration(labelText: 'Piloto'),
             items: [
               for (final pilot in pilots)
-                DropdownMenuItem(value: pilot['id'] as int, child: Text(pilot['name'] as String)),
+                DropdownMenuItem(
+                    value: pilot['id'] as int,
+                    child: Text(pilot['name'] as String)),
             ],
             onChanged: (value) => setState(() => userId = value),
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: TextField(controller: position, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Posicao'))),
+              Expanded(
+                  child: TextField(
+                      controller: position,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Posicao'))),
               const SizedBox(width: 10),
-              Expanded(child: TextField(controller: points, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Pontos'))),
+              Expanded(
+                  child: TextField(
+                      controller: points,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Pontos'))),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: TextField(controller: wins, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Vitorias'))),
+              Expanded(
+                  child: TextField(
+                      controller: wins,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          const InputDecoration(labelText: 'Vitorias'))),
               const SizedBox(width: 10),
-              Expanded(child: TextField(controller: poles, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Poles'))),
+              Expanded(
+                  child: TextField(
+                      controller: poles,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: 'Poles'))),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              Expanded(child: TextField(controller: fastestLaps, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Voltas rapidas'))),
+              Expanded(
+                  child: TextField(
+                      controller: fastestLaps,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          const InputDecoration(labelText: 'Voltas rapidas'))),
               const SizedBox(width: 10),
-              Expanded(child: TextField(controller: races, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Corridas'))),
+              Expanded(
+                  child: TextField(
+                      controller: races,
+                      keyboardType: TextInputType.number,
+                      decoration:
+                          const InputDecoration(labelText: 'Corridas'))),
             ],
           ),
           const SizedBox(height: 14),
           Row(
             children: [
-              Expanded(child: ElevatedButton(onPressed: save, child: Text(selected == null ? 'Salvar piloto' : 'Atualizar piloto'))),
+              Expanded(
+                  child: ElevatedButton(
+                      onPressed: save,
+                      child: Text(selected == null
+                          ? 'Salvar piloto'
+                          : 'Atualizar piloto'))),
               if (selected != null) ...[
                 const SizedBox(width: 10),
                 IconButton(onPressed: clear, icon: const Icon(Icons.close)),
@@ -531,7 +646,8 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
         for (final row in rows)
           _AdminRow(
             title: 'Pos. ${row['position']} - ${row['user']['name']}',
-            subtitle: '${row['points']} pts | V ${row['wins']} | P ${row['poles']} | VR ${row['fastestLaps']}',
+            subtitle:
+                '${row['points']} pts | V ${row['wins']} | P ${row['poles']} | VR ${row['fastestLaps']}',
             badge: '${row['races']} corridas',
             onTap: () => edit(Map<String, dynamic>.from(row as Map)),
           ),
@@ -541,7 +657,11 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
 }
 
 class _AdminList extends StatelessWidget {
-  const _AdminList({required this.title, required this.subtitle, required this.form, required this.children});
+  const _AdminList(
+      {required this.title,
+      required this.subtitle,
+      required this.form,
+      required this.children});
 
   final String title;
   final String subtitle;
@@ -567,7 +687,8 @@ class _AdminList extends StatelessWidget {
         if (children.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 18),
-            child: Text('Nenhum registro encontrado.', style: TextStyle(color: PotatosColors.smoke)),
+            child: Text('Nenhum registro encontrado.',
+                style: TextStyle(color: PotatosColors.smoke)),
           )
         else
           ...children,
@@ -577,7 +698,11 @@ class _AdminList extends StatelessWidget {
 }
 
 class _AdminRow extends StatelessWidget {
-  const _AdminRow({required this.title, required this.subtitle, required this.badge, required this.onTap});
+  const _AdminRow(
+      {required this.title,
+      required this.subtitle,
+      required this.badge,
+      required this.onTap});
 
   final String title;
   final String subtitle;
@@ -595,7 +720,10 @@ class _AdminRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(badge, style: const TextStyle(color: PotatosColors.racingOrange, fontWeight: FontWeight.w900)),
+            Text(badge,
+                style: const TextStyle(
+                    color: PotatosColors.racingOrange,
+                    fontWeight: FontWeight.w900)),
             const SizedBox(height: 4),
             const Icon(Icons.edit_outlined, size: 18),
           ],
@@ -625,7 +753,9 @@ class _CategoryDropdown extends StatelessWidget {
       initialValue: value,
       decoration: InputDecoration(
         labelText: 'Categoria',
-        helperText: categories.isEmpty ? 'Nenhuma categoria carregada' : '${categories.length} categorias carregadas',
+        helperText: categories.isEmpty
+            ? 'Nenhuma categoria carregada'
+            : '${categories.length} categorias carregadas',
         suffixIcon: IconButton(
           tooltip: 'Atualizar categorias',
           icon: const Icon(Icons.refresh),
@@ -634,7 +764,9 @@ class _CategoryDropdown extends StatelessWidget {
       ),
       items: [
         for (final category in categories)
-          DropdownMenuItem(value: category['id'] as int, child: Text(category['name'] as String)),
+          DropdownMenuItem(
+              value: category['id'] as int,
+              child: Text(category['name'] as String)),
       ],
       onTap: onRefresh,
       onChanged: onChanged,
@@ -642,10 +774,13 @@ class _CategoryDropdown extends StatelessWidget {
   }
 }
 
-Future<void> _guard(BuildContext context, Future<void> Function() action, {String? successMessage = 'Registro salvo.'}) async {
+Future<void> _guard(BuildContext context, Future<void> Function() action,
+    {String? successMessage = 'Registro salvo.'}) async {
   try {
     await action();
-    if (context.mounted && successMessage != null) _toast(context, successMessage);
+    if (context.mounted && successMessage != null) {
+      _toast(context, successMessage);
+    }
   } catch (error) {
     if (!context.mounted) return;
     var message = 'Nao foi possivel salvar.';
