@@ -13,7 +13,7 @@ export type PreparedPhoto = {
 export class ImageService {
   async prepareProfilePhoto(file?: Express.Multer.File): Promise<PreparedPhoto> {
     if (!file) {
-      throw new BadRequestException('A foto do piloto e obrigatoria.');
+      throw new BadRequestException('A foto do piloto é obrigatória.');
     }
 
     const maxBytes = Number(process.env.MAX_PHOTO_MB ?? 5) * 1024 * 1024;

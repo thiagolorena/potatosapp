@@ -19,6 +19,19 @@ class ApiClient {
         .post('/auth/login', data: {'email': email, 'password': password});
   }
 
+  Future<Response<dynamic>> forgotPassword(String email) {
+    return dio.post('/auth/forgot-password', data: {'email': email});
+  }
+
+  Future<Response<dynamic>> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+  }) {
+    return dio.post('/auth/reset-password',
+        data: {'email': email, 'code': code, 'password': password});
+  }
+
   Future<Response<dynamic>> register({
     required String name,
     required String email,

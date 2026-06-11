@@ -83,7 +83,7 @@ class _CategoryStandingsPageState extends State<CategoryStandingsPage>
       if (!mounted) return;
       setState(() {
         loadingCategories = false;
-        errorMessage = 'Nao foi possivel carregar a classificacao.';
+        errorMessage = 'Não foi possível carregar a classificação.';
       });
     }
   }
@@ -108,7 +108,7 @@ class _CategoryStandingsPageState extends State<CategoryStandingsPage>
         standings = [];
         loadingStandings = false;
         errorMessage =
-            'Nao foi possivel carregar a classificacao desta categoria.';
+            'Não foi possível carregar a classificação desta categoria.';
       });
     }
   }
@@ -116,7 +116,7 @@ class _CategoryStandingsPageState extends State<CategoryStandingsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Classificacao')),
+      appBar: AppBar(title: const Text('Classificação')),
       body: RefreshIndicator(
         onRefresh: loadCategories,
         child: ListView(
@@ -163,7 +163,7 @@ class _CategoryStandingsPageState extends State<CategoryStandingsPage>
                 standings.isEmpty)
               const _EmptyState(
                 icon: Icons.emoji_events_outlined,
-                title: 'Nenhuma classificacao cadastrada.',
+                title: 'Nenhuma classificação cadastrada.',
                 subtitle:
                     'Quando o admin atualizar os pilotos, a tabela aparece aqui.',
               )
@@ -197,7 +197,7 @@ class _StandingCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 6,
             children: [
-              _Metric(label: 'Vitorias', value: row['wins']),
+              _Metric(label: 'Vitórias', value: row['wins']),
               _Metric(label: 'Poles', value: row['poles']),
               _Metric(label: 'Corridas', value: row['races']),
               _Metric(label: 'VR', value: row['fastestLaps']),

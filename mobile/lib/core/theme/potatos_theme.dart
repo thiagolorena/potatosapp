@@ -27,10 +27,14 @@ class PotatosTheme {
       scaffoldBackgroundColor: PotatosColors.asphalt,
       fontFamily: 'Roboto',
       textTheme: const TextTheme(
-        headlineLarge: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 0),
-        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 0),
-        titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 0),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0),
+        headlineLarge: TextStyle(
+            fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: 0),
+        headlineSmall: TextStyle(
+            fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 0),
+        titleLarge: TextStyle(
+            fontSize: 20, fontWeight: FontWeight.w800, letterSpacing: 0),
+        titleMedium: TextStyle(
+            fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 0),
         bodyMedium: TextStyle(fontSize: 14, letterSpacing: 0),
       ),
       appBarTheme: const AppBarTheme(
@@ -50,7 +54,8 @@ class PotatosTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: PotatosColors.pitWall,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
@@ -58,7 +63,8 @@ class PotatosTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: PotatosColors.racingOrange, width: 1.5),
+          borderSide:
+              const BorderSide(color: PotatosColors.racingOrange, width: 1.5),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -82,9 +88,12 @@ class PotatosTheme {
         backgroundColor: PotatosColors.pitWall,
         selectedColor: PotatosColors.racingOrange,
         secondarySelectedColor: PotatosColors.racingOrange,
-        labelStyle: TextStyle(color: PotatosColors.flagWhite, fontWeight: FontWeight.w700),
-        secondaryLabelStyle: TextStyle(color: PotatosColors.asphalt, fontWeight: FontWeight.w800),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
+        labelStyle: TextStyle(
+            color: PotatosColors.flagWhite, fontWeight: FontWeight.w700),
+        secondaryLabelStyle: TextStyle(
+            color: PotatosColors.asphalt, fontWeight: FontWeight.w800),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8))),
       ),
     );
   }

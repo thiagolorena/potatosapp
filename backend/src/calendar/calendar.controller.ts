@@ -79,7 +79,7 @@ export class CalendarController {
     });
 
     if (existing) {
-      throw new ConflictException('Ja existe uma etapa com esta rodada nesta categoria.');
+      throw new ConflictException('Já existe uma etapa com esta rodada nesta categoria.');
     }
   }
 }

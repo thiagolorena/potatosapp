@@ -83,7 +83,7 @@ class _CategoryCalendarPageState extends State<CategoryCalendarPage>
       if (!mounted) return;
       setState(() {
         loadingCategories = false;
-        errorMessage = 'Nao foi possivel carregar o calendario.';
+        errorMessage = 'Não foi possível carregar o calendário.';
       });
     }
   }
@@ -107,7 +107,7 @@ class _CategoryCalendarPageState extends State<CategoryCalendarPage>
       setState(() {
         events = [];
         loadingEvents = false;
-        errorMessage = 'Nao foi possivel carregar as etapas desta categoria.';
+        errorMessage = 'Não foi possível carregar as etapas desta categoria.';
       });
     }
   }
@@ -115,7 +115,7 @@ class _CategoryCalendarPageState extends State<CategoryCalendarPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calendario')),
+      appBar: AppBar(title: const Text('Calendário')),
       body: RefreshIndicator(
         onRefresh: loadCategories,
         child: ListView(
@@ -164,7 +164,7 @@ class _CategoryCalendarPageState extends State<CategoryCalendarPage>
                 icon: Icons.event_busy_outlined,
                 title: 'Nenhuma etapa cadastrada para esta categoria.',
                 subtitle:
-                    'Quando o calendario for publicado, as corridas aparecem aqui.',
+                    'Quando o calendário for publicado, as corridas aparecem aqui.',
               )
             else
               for (final event in events)

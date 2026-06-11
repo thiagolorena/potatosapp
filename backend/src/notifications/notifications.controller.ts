@@ -43,7 +43,7 @@ export class NotificationsController {
   async send(@Body() dto: SendNotificationDto) {
     const message = dto.message.trim();
     if (!message) {
-      throw new BadRequestException('Informe a mensagem da notificacao.');
+      throw new BadRequestException('Informe a mensagem da notificação.');
     }
 
     const pilots = await this.prisma.user.findMany({

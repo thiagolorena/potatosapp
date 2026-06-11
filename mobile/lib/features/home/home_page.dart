@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/app_config.dart';
 import '../../core/theme/potatos_theme.dart';
+import '../../core/widgets/potatos_logo.dart';
 import '../admin/admin_page.dart';
 import '../calendar/category_calendar_page.dart';
 import '../standings/category_standings_page.dart';
@@ -20,7 +22,7 @@ class HomePage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Box Potatos'),
+        title: const PotatosLogo(height: 30),
         actions: [
           if (isAdmin)
             IconButton(
@@ -41,8 +43,8 @@ class HomePage extends StatelessWidget {
               children: [
                 _HomeAction(
                   icon: Icons.event_available_outlined,
-                  title: 'Calendario',
-                  subtitle: 'Etapas e horarios por categoria',
+                  title: 'Calendário',
+                  subtitle: 'Etapas e horários por categoria',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                         builder: (_) => const CategoryCalendarPage()),
@@ -51,18 +53,35 @@ class HomePage extends StatelessWidget {
                 const SizedBox(height: 12),
                 _HomeAction(
                   icon: Icons.leaderboard_outlined,
-                  title: 'Classificacao',
-                  subtitle: 'Tabela, pontos e estatisticas',
+                  title: 'Classificação',
+                  subtitle: 'Tabela, pontos e estatísticas',
                   onTap: () => Navigator.of(context).push(
                     MaterialPageRoute(
                         builder: (_) => const CategoryStandingsPage()),
                   ),
+                ),
+                const SizedBox(height: 12),
+                _HomeAction(
+                  icon: Icons.open_in_new,
+                  title: 'Site Potatos',
+                  subtitle: 'Acesse o portal oficial da liga',
+                  onTap: () => _openPotatosSite(context),
                 ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+Future<void> _openPotatosSite(BuildContext context) async {
+  final uri = Uri.parse('https://potatos.com.br/');
+  final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!opened && context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Não foi possível abrir o site.')),
     );
   }
 }

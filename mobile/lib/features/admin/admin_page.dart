@@ -54,11 +54,11 @@ class _AdminPageState extends State<AdminPage>
           controller: controller,
           tabs: const [
             Tab(icon: Icon(Icons.category_outlined), text: 'Categorias'),
-            Tab(icon: Icon(Icons.event_note_outlined), text: 'Calendario'),
-            Tab(icon: Icon(Icons.emoji_events_outlined), text: 'Classificacao'),
+            Tab(icon: Icon(Icons.event_note_outlined), text: 'Calendário'),
+            Tab(icon: Icon(Icons.emoji_events_outlined), text: 'Classificação'),
             Tab(
                 icon: Icon(Icons.notifications_active_outlined),
-                text: 'Notificacoes'),
+                text: 'Notificações'),
           ],
         ),
       ),
@@ -124,7 +124,7 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
       setState(() {
         loading = false;
         loadError =
-            _errorMessage(error, 'Nao foi possivel carregar categorias.');
+            _errorMessage(error, 'Não foi possível carregar categorias.');
       });
     }
   }
@@ -190,7 +190,7 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
     return _AdminList(
       title: 'Categorias',
       subtitle:
-          '$activeCount ativas | $inactiveCount inativas. Categorias inativas somem do calendario e da classificacao.',
+          '$activeCount ativas | $inactiveCount inativas. Categorias inativas somem do calendário e da classificação.',
       form: Column(
         children: [
           TextField(
@@ -200,7 +200,7 @@ class _CategoriesAdminTabState extends State<_CategoriesAdminTab> {
           const SizedBox(height: 12),
           TextField(
               controller: description,
-              decoration: const InputDecoration(labelText: 'Descricao')),
+              decoration: const InputDecoration(labelText: 'Descrição')),
           const SizedBox(height: 10),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
@@ -385,7 +385,7 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
       return eventId != selectedId && eventRound == roundNumber;
     });
     if (hasDuplicateRound) {
-      _toast(context, 'Ja existe uma etapa com esta rodada na categoria.');
+      _toast(context, 'Já existe uma etapa com esta rodada na categoria.');
       return;
     }
     await _guard(context, () async {
@@ -412,8 +412,8 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
   @override
   Widget build(BuildContext context) {
     return _AdminList(
-      title: 'Calendario',
-      subtitle: 'Cadastre etapas, pistas, horarios e status da corrida.',
+      title: 'Calendário',
+      subtitle: 'Cadastre etapas, pistas, horários e status da corrida.',
       form: Column(
         children: [
           _CategoryDropdown(
@@ -470,7 +470,7 @@ class _CalendarAdminTabState extends State<_CalendarAdminTab> {
           const SizedBox(height: 12),
           TextField(
               controller: notes,
-              decoration: const InputDecoration(labelText: 'Observacoes')),
+              decoration: const InputDecoration(labelText: 'Observações')),
           const SizedBox(height: 14),
           Row(
             children: [
@@ -567,7 +567,7 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
       setState(() {
         loadingBase = false;
         loadError = _errorMessage(
-            error, 'Nao foi possivel carregar categorias e pilotos.');
+            error, 'Não foi possível carregar categorias e pilotos.');
       });
     }
   }
@@ -598,7 +598,7 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
       setState(() {
         loadingRows = false;
         loadError =
-            _errorMessage(error, 'Nao foi possivel carregar classificacao.');
+            _errorMessage(error, 'Não foi possível carregar classificação.');
       });
     }
   }
@@ -632,7 +632,7 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
         }
       }
       await loadRows();
-    }, successMessage: 'Classificacao atualizada.');
+    }, successMessage: 'Classificação atualizada.');
     if (mounted) setState(() => savingRows = false);
   }
 
@@ -676,9 +676,9 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
   @override
   Widget build(BuildContext context) {
     return _AdminList(
-      title: 'Classificacao',
+      title: 'Classificação',
       subtitle:
-          'Selecione a categoria e atualize todos os pilotos em uma unica tabela.',
+          'Selecione a categoria e atualize todos os pilotos em uma única tabela.',
       form: Column(
         children: [
           _CategoryDropdown(
@@ -710,7 +710,7 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
                     )
                   : const Icon(Icons.save_outlined),
               label: Text(
-                  savingRows ? 'Salvando...' : 'Salvar classificacao completa'),
+                  savingRows ? 'Salvando...' : 'Salvar classificação completa'),
             ),
           ),
         ],
@@ -729,7 +729,7 @@ class _StandingsAdminTabState extends State<_StandingsAdminTab> {
         if (categoryId == null)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 18),
-            child: Text('Selecione uma categoria para editar a classificacao.',
+            child: Text('Selecione uma categoria para editar a classificação.',
                 style: TextStyle(color: PotatosColors.smoke)),
           )
         else if (!loadingRows && drafts.isEmpty)
@@ -860,10 +860,10 @@ class _StandingsGridState extends State<_StandingsGrid> {
                 DataColumn(label: Text('Piloto')),
                 DataColumn(label: Text('Pos.')),
                 DataColumn(label: Text('Pts')),
-                DataColumn(label: Text('Vitorias')),
+                DataColumn(label: Text('Vitórias')),
                 DataColumn(label: Text('Poles')),
                 DataColumn(label: Text('Corridas')),
-                DataColumn(label: Text('Voltas rapidas')),
+                DataColumn(label: Text('Voltas rápidas')),
               ],
               rows: [
                 for (final draft in widget.drafts)
@@ -976,7 +976,7 @@ class _NotificationsAdminTabState extends State<_NotificationsAdminTab> {
       if (!mounted) return;
       setState(() {
         loading = false;
-        loadError = _errorMessage(error, 'Nao foi possivel carregar pilotos.');
+        loadError = _errorMessage(error, 'Não foi possível carregar pilotos.');
       });
     }
   }
@@ -1005,7 +1005,7 @@ class _NotificationsAdminTabState extends State<_NotificationsAdminTab> {
   Future<void> send() async {
     final text = message.text.trim();
     if (text.isEmpty) {
-      _toast(context, 'Informe a mensagem da notificacao.');
+      _toast(context, 'Informe a mensagem da notificação.');
       return;
     }
     if (selectedPilotIds.isEmpty) {
@@ -1034,9 +1034,9 @@ class _NotificationsAdminTabState extends State<_NotificationsAdminTab> {
   @override
   Widget build(BuildContext context) {
     return _AdminList(
-      title: 'Notificacoes',
+      title: 'Notificações',
       subtitle:
-          'Envie comunicados para pilotos. Emojis e acentos sao aceitos normalmente.',
+          'Envie comunicados para pilotos. Emojis e acentos são aceitos normalmente.',
       form: Column(
         children: [
           TextField(
@@ -1061,7 +1061,7 @@ class _NotificationsAdminTabState extends State<_NotificationsAdminTab> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.send_outlined),
-              label: Text(sending ? 'Enviando...' : 'Enviar notificacao'),
+              label: Text(sending ? 'Enviando...' : 'Enviar notificação'),
             ),
           ),
         ],
@@ -1322,7 +1322,7 @@ Future<void> _guard(BuildContext context, Future<void> Function() action,
     }
   } catch (error) {
     if (!context.mounted) return;
-    _toast(context, _errorMessage(error, 'Nao foi possivel salvar.'));
+    _toast(context, _errorMessage(error, 'Não foi possível salvar.'));
   }
 }
 

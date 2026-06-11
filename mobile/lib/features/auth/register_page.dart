@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/services/api_client.dart';
+import '../../core/theme/potatos_theme.dart';
+import '../../core/widgets/potatos_logo.dart';
 import '../home/home_page.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -20,6 +22,15 @@ class _RegisterPageState extends State<RegisterPage> {
   XFile? photo;
   bool loading = false;
 
+  @override
+  void dispose() {
+    name.dispose();
+    email.dispose();
+    phone.dispose();
+    password.dispose();
+    super.dispose();
+  }
+
   Future<void> pickPhoto() async {
     final selected = await ImagePicker().pickImage(
         source: ImageSource.gallery, imageQuality: 82, maxWidth: 1200);
@@ -29,7 +40,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> submit() async {
     if (photo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('A foto do piloto e obrigatoria.')));
+          const SnackBar(content: Text('A foto do piloto é obrigatória.')));
       return;
     }
 
@@ -54,7 +65,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      var message = 'Nao foi possivel concluir o cadastro.';
+      var message = 'Não foi possível concluir o cadastro.';
       if (error is DioException) {
         final responseData = error.response?.data;
         if (responseData is Map && responseData['message'] != null) {
@@ -71,43 +82,108 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cadastro de piloto')),
+      appBar: AppBar(title: const PotatosLogo(height: 28, width: 136)),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(22, 12, 22, 28),
         children: [
-          Text('Monte seu perfil de grid',
-              style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 8),
-          const Text(
-              'A foto ajuda a identificar pilotos na classificacao e no paddock.',
-              style: TextStyle(color: Colors.white70)),
-          const SizedBox(height: 18),
+          const _RegisterHeader(),
+          const SizedBox(height: 24),
           _PhotoPickerCard(hasPhoto: photo != null, onTap: pickPhoto),
-          const SizedBox(height: 18),
-          TextField(
-              controller: name,
-              decoration: const InputDecoration(labelText: 'Nome')),
-          const SizedBox(height: 12),
-          TextField(
-              controller: email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'E-mail')),
-          const SizedBox(height: 12),
-          TextField(
-              controller: phone,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Telefone')),
-          const SizedBox(height: 12),
-          TextField(
-              controller: password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Senha')),
-          const SizedBox(height: 22),
-          ElevatedButton(
-              onPressed: loading ? null : submit,
-              child: Text(loading ? 'Cadastrando...' : 'Entrar na liga')),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: PotatosColors.pitWall,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: PotatosColors.gridLine),
+            ),
+            child: Column(
+              children: [
+                TextField(
+                  controller: name,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'E-mail',
+                    prefixIcon: Icon(Icons.mail_outline),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phone,
+                  keyboardType: TextInputType.phone,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Telefone',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: password,
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    if (!loading) submit();
+                  },
+                  decoration: const InputDecoration(
+                    labelText: 'Senha',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                ),
+                const SizedBox(height: 22),
+                ElevatedButton.icon(
+                  onPressed: loading ? null : submit,
+                  icon: loading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.verified_user_outlined),
+                  label: Text(loading ? 'Criando conta...' : 'Criar conta'),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _RegisterHeader extends StatelessWidget {
+  const _RegisterHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Crie sua conta de piloto',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: PotatosColors.flagWhite,
+              ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Informe seus dados e escolha uma foto para identificação na liga.',
+          style: TextStyle(
+            color: PotatosColors.smoke,
+            height: 1.4,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -120,52 +196,65 @@ class _PhotoPickerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(8),
-      onTap: onTap,
-      child: Container(
-        height: 118,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1B1D22),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color:
-                  hasPhoto ? const Color(0xFFFF6210) : const Color(0xFF2D3037)),
+    return Material(
+      color: PotatosColors.pitWall,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: hasPhoto ? PotatosColors.racingOrange : PotatosColors.gridLine,
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 66,
-              height: 66,
-              decoration: BoxDecoration(
-                color: hasPhoto
-                    ? const Color(0xFFFF6210)
-                    : const Color(0xFF2D3037),
-                borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: hasPhoto
+                      ? PotatosColors.racingOrange
+                      : PotatosColors.gridLine,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  hasPhoto ? Icons.check : Icons.add_a_photo_outlined,
+                  color: hasPhoto
+                      ? PotatosColors.asphalt
+                      : PotatosColors.flagWhite,
+                ),
               ),
-              child: Icon(hasPhoto ? Icons.check : Icons.add_a_photo_outlined,
-                  color: hasPhoto ? Colors.black : Colors.white),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasPhoto ? 'Foto selecionada' : 'Escolher foto',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
                       hasPhoto
-                          ? 'Foto selecionada'
-                          : 'Adicionar foto obrigatoria',
-                      style: const TextStyle(fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 4),
-                  const Text('Imagem compactada antes de salvar no MySQL.',
-                      style: TextStyle(color: Colors.white70)),
-                ],
+                          ? 'Tudo certo para criar sua conta.'
+                          : 'Obrigatória para identificar seu perfil.',
+                      style: const TextStyle(
+                        color: PotatosColors.smoke,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const Icon(Icons.chevron_right),
-          ],
+              const Icon(Icons.chevron_right, color: PotatosColors.smoke),
+            ],
+          ),
         ),
       ),
     );

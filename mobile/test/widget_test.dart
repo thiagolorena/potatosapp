@@ -5,7 +5,7 @@ void main() {
   testWidgets('renders login entry point', (WidgetTester tester) async {
     await tester.pumpWidget(const PotatosApp());
 
-    expect(find.text('Potatos Racing'), findsOneWidget);
-    expect(find.text('Entrar no grid'), findsOneWidget);
+    expect(find.text('POTATOS'), findsOneWidget);
+    expect(find.text('Acessar app'), findsOneWidget);
   });
 }
