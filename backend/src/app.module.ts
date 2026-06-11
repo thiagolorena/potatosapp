@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { CategoriesModule } from './categories/categories.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { StandingsModule } from './standings/standings.module';
 import { UsersModule } from './users/users.module';
@@ -16,6 +17,7 @@ import { UsersModule } from './users/users.module';
     CategoriesModule,
     CalendarModule,
     StandingsModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

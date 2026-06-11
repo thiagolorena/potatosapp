@@ -28,6 +28,8 @@ model User {
   active       Boolean    @default(true)
   photo        UserPhoto?
   standings    Standing[]
+  notifications NotificationRecipient[]
+  pushDevices   PushDevice[]
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
@@ -131,4 +133,41 @@ model Standing {
   @@unique([championshipId, userId])
   @@index([categoryId, position])
   @@map("standings")
+}
+
+model Notification {
+  id          Int                     @id @default(autoincrement())
+  message     String                  @db.Text
+  recipients  NotificationRecipient[]
+  createdAt   DateTime                @default(now()) @map("created_at")
+
+  @@map("notifications")
+}
+
+model NotificationRecipient {
+  id             Int          @id @default(autoincrement())
+  notificationId Int          @map("notification_id")
+  userId         Int          @map("user_id")
+  status         String       @default("PENDING_PROVIDER") @db.VarChar(40)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@unique([notificationId, userId])
+  @@index([userId])
+  @@map("notification_recipients")
+}
+
+model PushDevice {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique @db.VarChar(512)
+  platform  String   @db.VarChar(30)
+  active    Boolean  @default(true)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, active])
+  @@map("push_devices")
 }

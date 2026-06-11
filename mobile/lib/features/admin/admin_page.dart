@@ -17,12 +17,13 @@ class _AdminPageState extends State<AdminPage>
   int categoriesReloadToken = 0;
   int calendarReloadToken = 0;
   int standingsReloadToken = 0;
+  int notificationsReloadToken = 0;
   int currentTab = 0;
 
   @override
   void initState() {
     super.initState();
-    controller = TabController(length: 3, vsync: this);
+    controller = TabController(length: 4, vsync: this);
     controller.addListener(handleTabChange);
   }
 
@@ -33,6 +34,7 @@ class _AdminPageState extends State<AdminPage>
       if (currentTab == 0) categoriesReloadToken++;
       if (currentTab == 1) calendarReloadToken++;
       if (currentTab == 2) standingsReloadToken++;
+      if (currentTab == 3) notificationsReloadToken++;
     });
   }
 
@@ -54,6 +56,9 @@ class _AdminPageState extends State<AdminPage>
             Tab(icon: Icon(Icons.category_outlined), text: 'Categorias'),
             Tab(icon: Icon(Icons.event_note_outlined), text: 'Calendario'),
             Tab(icon: Icon(Icons.emoji_events_outlined), text: 'Classificacao'),
+            Tab(
+                icon: Icon(Icons.notifications_active_outlined),
+                text: 'Notificacoes'),
           ],
         ),
       ),
@@ -63,6 +68,7 @@ class _AdminPageState extends State<AdminPage>
           _CategoriesAdminTab(reloadToken: categoriesReloadToken),
           _CalendarAdminTab(reloadToken: calendarReloadToken),
           _StandingsAdminTab(reloadToken: standingsReloadToken),
+          _NotificationsAdminTab(reloadToken: notificationsReloadToken),
         ],
       ),
     );
@@ -907,6 +913,201 @@ class _StandingNumberField extends StatelessWidget {
           contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         ),
       ),
+    );
+  }
+}
+
+class _NotificationsAdminTab extends StatefulWidget {
+  const _NotificationsAdminTab({required this.reloadToken});
+
+  final int reloadToken;
+
+  @override
+  State<_NotificationsAdminTab> createState() => _NotificationsAdminTabState();
+}
+
+class _NotificationsAdminTabState extends State<_NotificationsAdminTab> {
+  final message = TextEditingController();
+  List<dynamic> pilots = [];
+  final selectedPilotIds = <int>{};
+  bool allPilots = true;
+  bool loading = false;
+  bool sending = false;
+  String? loadError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) loadPilots();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _NotificationsAdminTab oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.reloadToken != widget.reloadToken) loadPilots();
+  }
+
+  @override
+  void dispose() {
+    message.dispose();
+    super.dispose();
+  }
+
+  Future<void> loadPilots() async {
+    setState(() {
+      loading = true;
+      loadError = null;
+    });
+    try {
+      final result = await ApiScope.of(context).pilots();
+      final loadedPilots = result.data as List<dynamic>;
+      if (!mounted) return;
+      setState(() {
+        pilots = loadedPilots;
+        loading = false;
+        selectedPilotIds
+          ..clear()
+          ..addAll(loadedPilots.map((pilot) => pilot['id'] as int));
+        allPilots = true;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        loadError = _errorMessage(error, 'Nao foi possivel carregar pilotos.');
+      });
+    }
+  }
+
+  void toggleAll(bool value) {
+    setState(() {
+      allPilots = value;
+      selectedPilotIds.clear();
+      if (value) {
+        selectedPilotIds.addAll(pilots.map((pilot) => pilot['id'] as int));
+      }
+    });
+  }
+
+  void togglePilot(int id, bool value) {
+    setState(() {
+      if (value) {
+        selectedPilotIds.add(id);
+      } else {
+        selectedPilotIds.remove(id);
+      }
+      allPilots = selectedPilotIds.length == pilots.length && pilots.isNotEmpty;
+    });
+  }
+
+  Future<void> send() async {
+    final text = message.text.trim();
+    if (text.isEmpty) {
+      _toast(context, 'Informe a mensagem da notificacao.');
+      return;
+    }
+    if (selectedPilotIds.isEmpty) {
+      _toast(context, 'Selecione pelo menos um piloto.');
+      return;
+    }
+    setState(() => sending = true);
+    String? successMessage;
+    await _guard(context, () async {
+      final result = await ApiScope.of(context).sendNotification({
+        'message': text,
+        'allPilots': allPilots,
+        'userIds': selectedPilotIds.toList(),
+      });
+      final recipientCount = result.data['recipientCount'];
+      final deviceCount = result.data['deviceCount'];
+      message.clear();
+      successMessage =
+          'Notificacao registrada para $recipientCount pilotos. Dispositivos: $deviceCount.';
+    }, successMessage: null);
+    if (!mounted) return;
+    if (successMessage != null) _toast(context, successMessage!);
+    setState(() => sending = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _AdminList(
+      title: 'Notificacoes',
+      subtitle:
+          'Envie comunicados para pilotos. Emojis e acentos sao aceitos normalmente.',
+      form: Column(
+        children: [
+          TextField(
+            controller: message,
+            minLines: 3,
+            maxLines: 6,
+            maxLength: 500,
+            decoration: const InputDecoration(
+              labelText: 'Mensagem',
+              alignLabelWithHint: true,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: sending ? null : send,
+              icon: sending
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send_outlined),
+              label: Text(sending ? 'Enviando...' : 'Enviar notificacao'),
+            ),
+          ),
+        ],
+      ),
+      children: [
+        if (loading)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        if (loadError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _AdminInlineError(message: loadError!, onRetry: loadPilots),
+          ),
+        if (!loading && pilots.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 18),
+            child: Text('Nenhum piloto ativo encontrado.',
+                style: TextStyle(color: PotatosColors.smoke)),
+          )
+        else ...[
+          Card(
+            child: CheckboxListTile(
+              value: allPilots,
+              onChanged: (value) => toggleAll(value ?? false),
+              title: const Text('Todos os pilotos',
+                  style: TextStyle(fontWeight: FontWeight.w900)),
+              subtitle: Text('${selectedPilotIds.length} selecionados'),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+          ),
+          for (final pilot in pilots)
+            Card(
+              child: CheckboxListTile(
+                value: selectedPilotIds.contains(pilot['id']),
+                onChanged: (value) =>
+                    togglePilot(pilot['id'] as int, value ?? false),
+                title: Text(pilot['name'] as String,
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text(pilot['email'] as String? ?? ''),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ),
+        ],
+      ],
     );
   }
 }

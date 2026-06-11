@@ -5,7 +5,8 @@ import 'package:flutter/widgets.dart';
 
 class ApiClient {
   ApiClient({required String baseUrl})
-      : dio = Dio(BaseOptions(baseUrl: baseUrl, connectTimeout: const Duration(seconds: 10)));
+      : dio = Dio(BaseOptions(
+            baseUrl: baseUrl, connectTimeout: const Duration(seconds: 10)));
 
   final Dio dio;
 
@@ -14,7 +15,8 @@ class ApiClient {
   }
 
   Future<Response<dynamic>> login(String email, String password) {
-    return dio.post('/auth/login', data: {'email': email, 'password': password});
+    return dio
+        .post('/auth/login', data: {'email': email, 'password': password});
   }
 
   Future<Response<dynamic>> register({
@@ -37,17 +39,28 @@ class ApiClient {
 
   Future<Response<dynamic>> categories() => dio.get('/categories');
   Future<Response<dynamic>> adminCategories() => dio.get('/categories/admin');
-  Future<Response<dynamic>> createCategory(Map<String, dynamic> data) => dio.post('/categories', data: data);
-  Future<Response<dynamic>> updateCategory(int id, Map<String, dynamic> data) => dio.put('/categories/$id', data: data);
+  Future<Response<dynamic>> createCategory(Map<String, dynamic> data) =>
+      dio.post('/categories', data: data);
+  Future<Response<dynamic>> updateCategory(int id, Map<String, dynamic> data) =>
+      dio.put('/categories/$id', data: data);
 
-  Future<Response<dynamic>> calendar(int categoryId) => dio.get('/calendar/category/$categoryId');
-  Future<Response<dynamic>> createCalendarEvent(Map<String, dynamic> data) => dio.post('/calendar', data: data);
-  Future<Response<dynamic>> updateCalendarEvent(int id, Map<String, dynamic> data) => dio.put('/calendar/$id', data: data);
+  Future<Response<dynamic>> calendar(int categoryId) =>
+      dio.get('/calendar/category/$categoryId');
+  Future<Response<dynamic>> createCalendarEvent(Map<String, dynamic> data) =>
+      dio.post('/calendar', data: data);
+  Future<Response<dynamic>> updateCalendarEvent(
+          int id, Map<String, dynamic> data) =>
+      dio.put('/calendar/$id', data: data);
 
-  Future<Response<dynamic>> standings(int categoryId) => dio.get('/standings/category/$categoryId');
+  Future<Response<dynamic>> standings(int categoryId) =>
+      dio.get('/standings/category/$categoryId');
   Future<Response<dynamic>> pilots() => dio.get('/users/pilots');
-  Future<Response<dynamic>> createStanding(Map<String, dynamic> data) => dio.post('/standings', data: data);
-  Future<Response<dynamic>> updateStanding(int id, Map<String, dynamic> data) => dio.put('/standings/$id', data: data);
+  Future<Response<dynamic>> createStanding(Map<String, dynamic> data) =>
+      dio.post('/standings', data: data);
+  Future<Response<dynamic>> updateStanding(int id, Map<String, dynamic> data) =>
+      dio.put('/standings/$id', data: data);
+  Future<Response<dynamic>> sendNotification(Map<String, dynamic> data) =>
+      dio.post('/notifications/send', data: data);
 }
 
 class ApiScope extends InheritedWidget {
