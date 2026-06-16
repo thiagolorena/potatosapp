@@ -1,4 +1,4 @@
-package com.example.potatos_racing_app
+package br.com.potatos.app
 
 import io.flutter.embedding.android.FlutterActivity
 
