@@ -33,14 +33,29 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> pickPhoto() async {
     final selected = await ImagePicker().pickImage(
-        source: ImageSource.gallery, imageQuality: 82, maxWidth: 1200);
+      source: ImageSource.gallery,
+      imageQuality: 70,
+      maxWidth: 900,
+      maxHeight: 900,
+    );
     if (selected != null) setState(() => photo = selected);
   }
 
   Future<void> submit() async {
+    if (name.text.trim().isEmpty ||
+        email.text.trim().isEmpty ||
+        phone.text.trim().isEmpty ||
+        password.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Preencha todos os campos.')),
+      );
+      return;
+    }
+
     if (photo == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('A foto do piloto é obrigatória.')));
+        const SnackBar(content: Text('A foto do piloto é obrigatória.')),
+      );
       return;
     }
 
@@ -65,17 +80,38 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     } catch (error) {
       if (!mounted) return;
-      var message = 'Não foi possível concluir o cadastro.';
-      if (error is DioException) {
-        final responseData = error.response?.data;
-        if (responseData is Map && responseData['message'] != null) {
-          message = responseData['message'].toString();
-        }
-      }
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      final message = _registrationErrorMessage(error);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     } finally {
       if (mounted) setState(() => loading = false);
+    }
+  }
+
+  String _registrationErrorMessage(Object error) {
+    if (error is! DioException) {
+      return 'Não foi possível concluir o cadastro.';
+    }
+
+    final responseData = error.response?.data;
+    if (responseData is Map && responseData['message'] != null) {
+      final message = responseData['message'];
+      if (message is List) return message.join('\n');
+      return message.toString();
+    }
+
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Tempo esgotado. Verifique sua internet e tente novamente.';
+      case DioExceptionType.connectionError:
+        return 'Sem conexão com a API. Verifique sua internet e tente novamente.';
+      case DioExceptionType.badCertificate:
+        return 'Não foi possível validar a conexão segura com a API.';
+      default:
+        return 'Não foi possível concluir o cadastro. Tente novamente.';
     }
   }
 

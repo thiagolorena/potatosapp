@@ -6,7 +6,11 @@ import 'package:flutter/widgets.dart';
 class ApiClient {
   ApiClient({required String baseUrl})
       : dio = Dio(BaseOptions(
-            baseUrl: baseUrl, connectTimeout: const Duration(seconds: 10)));
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 30),
+        ));
 
   final Dio dio;
 
@@ -41,11 +45,15 @@ class ApiClient {
     required String photoName,
   }) {
     final data = FormData.fromMap({
-      'name': name,
-      'email': email,
-      'phone': phone,
+      'name': name.trim(),
+      'email': email.trim(),
+      'phone': phone.trim(),
       'password': password,
-      'photo': MultipartFile.fromBytes(photoBytes, filename: photoName),
+      'photo': MultipartFile.fromBytes(
+        photoBytes,
+        filename: photoName,
+        contentType: DioMediaType('image', 'jpeg'),
+      ),
     });
     return dio.post('/auth/register', data: data);
   }
