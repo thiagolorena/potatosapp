@@ -56,7 +56,7 @@ export class AuthService {
       where: { email: dto.email.toLowerCase().trim() },
     });
 
-    if (!user || !(await argon2.verify(user.passwordHash, dto.password))) {
+    if (!user || !user.active || !(await argon2.verify(user.passwordHash, dto.password))) {
       throw new UnauthorizedException('Credenciais invalidas.');
     }
 
@@ -66,6 +66,7 @@ export class AuthService {
       email: user.email,
       phone: user.phone,
       role: user.role,
+      active: user.active,
     });
   }
 
@@ -143,7 +144,7 @@ export class AuthService {
     return { message: 'Senha atualizada com sucesso.' };
   }
 
-  private withToken(user: { id: number; name: string; email: string; phone: string; role: UserRole }) {
+  private withToken(user: { id: number; name: string; email: string; phone: string; role: UserRole; active: boolean }) {
     return {
       user,
       accessToken: this.jwt.sign({ sub: user.id, role: user.role }),
@@ -157,6 +158,7 @@ export class AuthService {
       email: true,
       phone: true,
       role: true,
+      active: true,
     };
   }
 
